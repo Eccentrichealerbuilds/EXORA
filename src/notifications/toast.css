@@ -1,0 +1,36 @@
+.exora-toast-stack { position:fixed; z-index:1000; top:calc(env(safe-area-inset-top,0px) + 14px); left:0; right:0; display:flex; flex-direction:column; align-items:center; gap:12px; padding:0 14px; pointer-events:none; }
+.exora-toast { position:relative; width:min(100%,700px); pointer-events:auto; color:#fcf8ff; font-family:Inter,system-ui,sans-serif; }
+.exora-toast-swipe { position:relative; isolation:isolate; display:flex; align-items:center; gap:22px; min-height:122px; padding:20px 23px; border:1.5px solid #ce9dff; border-radius:25px; background:radial-gradient(ellipse at 0 0,#7129c855,transparent 53%),radial-gradient(ellipse at 100% 100%,#6c26bb4d,transparent 47%),linear-gradient(115deg,#130e25f5,#110d20f2 60%,#25133bdc); box-shadow:0 0 3px #e7c9ff,inset 0 0 3px #dfadff,0 0 17px #8724ec55,0 16px 44px #06020dc9,inset 0 0 24px #873be927; backdrop-filter:blur(28px) saturate(150%); -webkit-backdrop-filter:blur(28px) saturate(150%); touch-action:pan-y; user-select:none; cursor:grab; }
+.exora-toast-swipe:active { cursor:grabbing; }
+.exora-toast-swipe::before { content:""; position:absolute; pointer-events:none; inset:-1.5px 14%; height:2px; background:linear-gradient(90deg,transparent,#ead9ff,transparent 48%,#bb78ff,transparent); filter:drop-shadow(0 0 5px #ce8bff); }
+.exora-toast-badge { position:relative; width:76px; height:82px; flex-shrink:0; display:grid; place-items:center; filter:drop-shadow(0 0 10px #923eff66); }
+.exora-toast-hex { position:absolute; width:100%; height:100%; }
+.exora-toast-symbol { position:relative; width:39px; height:39px; color:#f8f0ff; filter:drop-shadow(0 0 4px #dfb7ff66); }
+.exora-toast-seal { position:absolute; right:-3px; bottom:2px; display:grid; place-items:center; width:28px; height:28px; border-radius:50%; color:#210d3b; background:linear-gradient(135deg,#d4a4ff,#a977ed); box-shadow:0 0 0 3px #201135; }
+.exora-toast-seal svg { width:18px; height:18px; stroke-width:3; }
+.exora-toast[data-kind=error] .exora-toast-seal { background:linear-gradient(135deg,#ffc2df,#da9be9); }
+.exora-toast-divider { align-self:stretch; width:1px; min-height:55px; background:linear-gradient(transparent,#9764d078 16%,#9764d078 84%,transparent); flex-shrink:0; }
+.exora-toast-copy { flex:1; min-width:0; }
+.exora-toast-title { margin:0; font-size:22px; font-weight:650; line-height:1.25; letter-spacing:.01em; }
+.exora-toast-message { margin:9px 0 0; color:#c8aaef; font-size:15px; line-height:1.5; overflow-wrap:anywhere; }
+.exora-toast-controls { align-self:stretch; display:flex; flex-direction:column; justify-content:center; align-items:center; gap:7px; flex-shrink:0; }
+.exora-toast-close { width:43px; height:43px; border-radius:50%; display:grid; place-items:center; color:#faf3ff; border:1.5px solid #a77adb99; background:radial-gradient(circle at 60% 80%,#8644b831,#21152f66); box-shadow:inset 0 0 9px #ca94ff12; cursor:pointer; }
+.exora-toast-close svg { width:24px; height:24px; stroke-width:1.9; }
+.exora-toast-sound { display:grid; place-items:center; padding:6px; color:#aa87cd; background:transparent; border:0; cursor:pointer; }
+.exora-toast-sound svg { width:15px; height:15px; }
+.exora-toast-action { padding:5px 0; margin-top:5px; background:transparent; border:0; color:#eddaff; font:inherit; font-size:12px; text-align:left; cursor:pointer; text-decoration:underline; text-underline-offset:3px; }
+.exora-toast button:focus-visible { outline:2px solid #ead5ff; outline-offset:3px; }
+.exora-toast button:hover { color:white; filter:brightness(1.2); }
+@media(max-width:540px) {
+ .exora-toast-stack { padding:0 12px; gap:10px; }
+ .exora-toast-swipe { min-height:104px; gap:12px; padding:15px 13px; border-radius:22px; }
+ .exora-toast-badge { width:49px; height:56px; }
+ .exora-toast-symbol { width:28px; height:28px; }
+ .exora-toast-seal { width:21px; height:21px; right:-3px; bottom:-1px; box-shadow:0 0 0 2px #201135; }
+ .exora-toast-seal svg { width:14px; height:14px; }
+ .exora-toast-title { font-size:16px; }
+ .exora-toast-message { font-size:12px; margin-top:6px; }
+ .exora-toast-close { width:32px; height:32px; }
+ .exora-toast-close svg { width:19px; height:19px; }
+ .exora-toast-controls { gap:2px; }
+}

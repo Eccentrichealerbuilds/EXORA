@@ -1,0 +1,71 @@
+@import url('https://fonts.googleapis.com/css2?family=Chakra+Petch:wght@500;600;700&family=IBM+Plex+Mono:wght@400;500&display=swap');
+
+@import "tailwindcss";
+
+@theme {
+    --color-surface: #08090f;
+    --color-panel: #141620;
+    --color-raised: #22242f;
+    --color-ink: #f4f3f7;
+    --color-muted: #a6a7b8;
+    --color-mint: #77eac4;
+    --color-rose: #ff8b9a;
+    --color-violet: #baa5ff;
+    --shadow-float: 0 10px 24px rgba(0,0,0,0.35);
+}
+
+:root {
+    color-scheme: dark;
+    font-family: "Chakra Petch", sans-serif;
+    background: #050407;
+}
+
+* {
+    box-sizing: border-box;
+}
+
+html,
+body,
+#root {
+    min-height: 100%;
+    margin: 0;
+}
+
+body {
+    min-width: 320px;
+    background: #050407;
+}
+
+html,
+body {
+    overscroll-behavior-y: contain;
+}
+
+html,
+body,
+.scrollbar-hidden {
+    scrollbar-width: none;
+    -ms-overflow-style: none;
+}
+
+html::-webkit-scrollbar,
+body::-webkit-scrollbar,
+.scrollbar-hidden::-webkit-scrollbar {
+    display: none;
+}
+
+button,
+a {
+    -webkit-tap-highlight-color: transparent;
+}
+
+@media (prefers-reduced-motion: reduce) {
+
+    *,
+    *::before,
+    *::after {
+        scroll-behavior: auto !important;
+        animation-duration: 0.01ms !important;
+        animation-iteration-count: 1 !important;
+    }
+}

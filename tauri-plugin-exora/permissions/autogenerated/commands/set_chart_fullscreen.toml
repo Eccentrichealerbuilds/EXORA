@@ -1,0 +1,13 @@
+# Automatically generated - DO NOT EDIT!
+
+"$schema" = "../../schemas/schema.json"
+
+[[permission]]
+identifier = "allow-set-chart-fullscreen"
+description = "Enables the set_chart_fullscreen command without any pre-configured scope."
+commands.allow = ["set_chart_fullscreen"]
+
+[[permission]]
+identifier = "deny-set-chart-fullscreen"
+description = "Denies the set_chart_fullscreen command without any pre-configured scope."
+commands.deny = ["set_chart_fullscreen"]
