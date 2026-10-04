@@ -2,7 +2,7 @@ import { createContext, useCallback, useContext, useEffect, useRef, useState } f
 import { Outlet, useNavigate } from "react-router";
 import { invoke, isTauri } from "@tauri-apps/api/core";
 import { openUrl } from "@tauri-apps/plugin-opener";
-import { ArrowRightIcon, CheckIcon, CopyIcon, ExternalLinkIcon, RefreshCwIcon, SparklesIcon } from "lucide-react";
+import { ArrowRightIcon, CheckIcon, CopyIcon, ExternalLinkIcon, Layers3Icon, RotateCwIcon } from "lucide-react";
 import { Sheet } from "./TransferPrimitives";
 import { useSessionAddress } from "../utils/authSession";
 import { errorText } from "../utils/errorText";
@@ -138,7 +138,7 @@ export function TradingSetupProvider() {
         </li>)}
       </ol>
       {error && <p role="alert" className="mt-4 text-xs leading-relaxed text-[#ff9fae]">{error} Your setup progress could not be verified.</p>}
-      <button type="button" disabled={loading} onClick={() => void refresh()} className={actionClass}><RefreshCwIcon className={`h-3.5 w-3.5 ${loading ? "animate-spin" : ""}`} />{loading ? "Checking your wallet…" : "Refresh setup progress"}</button>
+      <button type="button" disabled={loading} onClick={() => void refresh()} className={actionClass}><span aria-hidden="true" className="grid h-7 w-7 shrink-0 place-items-center rounded-[9px] border border-[#d5c7ff]/20 bg-linear-to-br from-[#c2adff]/20 to-[#100d1c] shadow-[inset_0_1px_0_rgba(241,234,255,0.16)]"><RotateCwIcon strokeWidth={1.4} className={`h-3.5 w-3.5 text-[#d8ccf5] ${loading ? "animate-spin motion-reduce:animate-none" : ""}`} /></span>{loading ? "Checking your wallet…" : "Refresh setup progress"}</button>
       <button type="button" onClick={() => setOpen(false)} className="mt-3 min-h-10 w-full text-xs text-[#b9b0c9]">I’ll do this later</button>
     </Sheet>
   </Context.Provider>;
@@ -148,7 +148,10 @@ export function TradingSetupBanner() {
   const { status, error, openSetup } = useTradingSetup();
   if (status?.exists || (!status && !error)) return null;
   return <button type="button" onClick={openSetup} className="mb-4 flex w-full items-center gap-3 rounded-2xl border border-[#b9a4ff]/25 bg-[#8873ff]/10 p-4 text-left text-[#eee6ff]">
-    <SparklesIcon className="h-5 w-5 shrink-0 text-[#b9a4ff]" />
+    <span aria-hidden="true" className="relative grid h-11 w-11 shrink-0 place-items-center overflow-hidden rounded-[14px] border border-[#d5c7ff]/20 bg-linear-to-br from-[#c2adff]/20 via-[#8873ff]/10 to-[#100d1c] shadow-[inset_0_1px_0_rgba(241,234,255,0.16),0_4px_14px_rgba(0,0,0,0.2)]">
+      <span className="absolute inset-x-2 top-0 h-px bg-linear-to-r from-transparent via-[#e0d4ff]/60 to-transparent" />
+      <Layers3Icon strokeWidth={1.4} className="h-[22px] w-[22px] text-[#d8ccf5]" />
+    </span>
     <span className="flex-1"><span className="block text-sm font-medium">{status ? "Finish your trading setup" : "Check your trading setup"}</span><span className="mt-1 block text-xs text-[#b9b0c9]">{status ? "MON for fees → AUSD faucet → Perpl account" : "Couldn’t check your account. Tap to retry."}</span></span>
     <ArrowRightIcon className="h-4 w-4 shrink-0 text-[#b9a4ff]" />
   </button>;

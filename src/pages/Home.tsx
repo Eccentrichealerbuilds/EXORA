@@ -2,7 +2,7 @@ import { notify } from "../notifications/store";
 import { useEffect, useRef, useState, type TouchEvent } from "react";
 import { useLocation, useNavigate } from "react-router";
 import { AnimatePresence, motion } from "framer-motion";
-import { ArrowRightIcon, ArrowUpRightIcon, ChevronDownIcon, CloudOffIcon, CopyIcon, FingerprintIcon, LogOutIcon, PlusIcon, RefreshCwIcon } from "lucide-react";
+import { ArrowRightIcon, ArrowUpRightIcon, ChevronDownIcon, CloudOffIcon, CopyIcon, FingerprintIcon, LogOutIcon, PlusIcon, RotateCwIcon, WalletMinimalIcon } from "lucide-react";
 import ausdCardArt from "../assets/cards/ausd-card.webp";
 import ausdCardBase from "../assets/cards/ausd-card-base.webp";
 import ausdCardEmblem from "../assets/cards/ausd-card-emblem.webp";
@@ -339,7 +339,7 @@ export default function Home() {
                   <div className="mx-auto w-full max-w-5xl px-4 pb-12 pt-5 sm:px-8 sm:pt-8">
                         <TradingSetupBanner />
                         <div className="flex items-center justify-center gap-2 overflow-hidden font-mono text-[10px] uppercase tracking-[0.16em] text-[#b8a9ff]" style={{ height: pullDistance }} aria-hidden="true">
-                              <RefreshCwIcon className="h-4 w-4 shrink-0" style={{ transform: `rotate(${pullDistance * 3}deg)` }} />
+                              <RotateCwIcon strokeWidth={1.4} className="h-4 w-4 shrink-0" style={{ transform: `rotate(${pullDistance * 3}deg)` }} />
                               {pullDistance >= 64 ? "Release to refresh" : "Pull to refresh"}
                         </div>
 
@@ -349,8 +349,9 @@ export default function Home() {
                                     <div className="flex items-end justify-between gap-3">
                                           <div className="min-w-0">
                                                 <div className="flex items-center gap-2">
-                                                      <p className="font-mono text-[9px] uppercase tracking-[0.2em] text-[#8f879c]">Estimated total · Monad testnet</p>
-                                                      <button type="button" onClick={refreshBalances} disabled={!address || balanceLoading} aria-label="Refresh balances" title="Refresh balances" className="grid h-6 w-6 shrink-0 place-items-center rounded-full border border-[rgba(136,115,255,0.2)] text-[#b8a9ff] outline-none transition-colors hover:border-[#8873ff] hover:bg-[rgba(136,115,255,0.1)] focus-visible:ring-2 focus-visible:ring-[#9b87ff] disabled:opacity-50"><RefreshCwIcon className={`h-3 w-3 ${balanceLoading ? "animate-spin" : ""}`} aria-hidden="true" /></button>
+                                                      <span aria-hidden="true" className="grid h-8 w-8 shrink-0 place-items-center rounded-[11px] border border-[#d5c7ff]/20 bg-linear-to-br from-[#c2adff]/20 via-[#8873ff]/10 to-[#100d1c] shadow-[inset_0_1px_0_rgba(241,234,255,0.16)]"><WalletMinimalIcon strokeWidth={1.4} className="h-4 w-4 text-[#d8ccf5]" /></span>
+                                                      <p className="font-mono text-[9px] uppercase tracking-[0.18em] text-[#aaa0ba]">Estimated total<span className="mt-1 block text-[8px] tracking-[0.12em] text-[#756d83]">Monad testnet</span></p>
+                                                      <button type="button" onClick={refreshBalances} disabled={!address || balanceLoading} aria-label="Refresh balances" title="Refresh balances" className="group grid h-11 w-11 shrink-0 place-items-center rounded-[14px] outline-none focus-visible:ring-2 focus-visible:ring-[#9b87ff] disabled:opacity-50"><span className="grid h-8 w-8 place-items-center rounded-[11px] border border-[#d5c7ff]/20 bg-linear-to-br from-[#c2adff]/20 via-[#8873ff]/10 to-[#100d1c] text-[#d8ccf5] shadow-[inset_0_1px_0_rgba(241,234,255,0.16),0_3px_10px_rgba(0,0,0,0.15)] transition-colors group-hover:border-[#c2adff]/45"><RotateCwIcon strokeWidth={1.4} className={`h-4 w-4 ${balanceLoading ? "animate-spin motion-reduce:animate-none" : ""}`} aria-hidden="true" /></span></button>
                                                 </div>
                                                 <p className="mt-1.5 truncate font-display text-[34px] font-semibold tabular-nums leading-10 text-[#fffaff] sm:text-[40px] sm:leading-[48px]">{estimatedTotal ?? "—"}</p>
                                                 <p className="mt-1 break-all font-mono text-[11px] text-[#8f879c]">{address ?? "No address available"}</p>
@@ -367,7 +368,7 @@ export default function Home() {
                                     {balanceError && <div role="alert" className="mt-4 flex items-center gap-3 rounded-[18px] border border-[rgba(255,142,166,0.25)] bg-[linear-gradient(110deg,rgba(255,142,166,0.08),rgba(136,115,255,0.06))] p-3 shadow-[inset_0_1px_0_rgba(255,255,255,0.08)]">
                                           <span className="grid h-10 w-10 shrink-0 place-items-center rounded-[12px] border border-[rgba(255,142,166,0.24)] bg-[rgba(255,142,166,0.1)]"><CloudOffIcon className="h-5 w-5 text-[#ff9bb1]" aria-hidden="true" /></span>
                                           <span className="min-w-0 flex-1"><span className="block font-display text-sm font-semibold text-[#f7f4ff]">Balance sync unavailable</span><span className="block font-mono text-[10px] leading-4 text-[#aaa2b5]">Pull down or tap retry.</span></span>
-                                          <button type="button" onClick={refreshBalances} disabled={balanceLoading} aria-label="Retry balance refresh" className="grid h-9 w-9 shrink-0 place-items-center rounded-full border border-[rgba(230,224,255,0.18)] text-[#e7e1f3] outline-none transition-colors hover:border-[#8873ff] hover:bg-[rgba(136,115,255,0.1)] focus-visible:ring-2 focus-visible:ring-[#9b87ff] disabled:opacity-50"><RefreshCwIcon className={`h-4 w-4 ${balanceLoading ? "animate-spin" : ""}`} aria-hidden="true" /></button>
+                                          <button type="button" onClick={refreshBalances} disabled={balanceLoading} aria-label="Retry balance refresh" className="grid h-11 w-11 shrink-0 place-items-center rounded-[14px] border border-[#d5c7ff]/20 bg-linear-to-br from-[#c2adff]/20 via-[#8873ff]/10 to-[#100d1c] text-[#d8ccf5] shadow-[inset_0_1px_0_rgba(241,234,255,0.16)] outline-none transition-colors hover:border-[#c2adff]/45 focus-visible:ring-2 focus-visible:ring-[#9b87ff] disabled:opacity-50"><RotateCwIcon strokeWidth={1.4} className={`h-4 w-4 ${balanceLoading ? "animate-spin motion-reduce:animate-none" : ""}`} aria-hidden="true" /></button>
                                     </div>}
 
                                     <div className="mt-6 grid grid-cols-2 gap-2.5 sm:gap-3">
