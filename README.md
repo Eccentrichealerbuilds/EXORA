@@ -1,13 +1,21 @@
 # Exora
 
-An Android perpetual trading app for Perpl on Monad testnet, built with React, TypeScript, Tauri, and Rust.
+An Android perpetual trading app for Perpl on Monad testnet, built with React, TypeScript, Tauri, Rust, and Kotlin, using Mera by Category Labs for passkey signing.
+
+## Core technologies
+
+- **React + TypeScript** — app screens, state, and interactive charts.
+- **Rust + Alloy** — Monad contract interaction, account balances, and Perpl data streams.
+- **Tauri** — the app shell and channels/events between the interface and Rust.
+- **Kotlin** — Android Credential Manager integration, passkey request/result handling, WebView customization, and native chart orientation.
+- **[Mera by Category Labs](https://github.com/category-labs/mera)** (`@category-labs/mera`) — WebAuthn integration, EVM address utilities, and secp256k1 signing sessions used by the passkey wallet.
 
 ## Project layout
 
 - `src/` — screens, chart rendering, notifications, and Tauri bindings.
 - `src-tauri/src/` — market streams, candle history/cache, account data, signing payloads, and contract transactions.
-- `tauri-plugin-exora/` — Android passkey and landscape/fullscreen bridge.
-- `src-tauri/gen/android/` — Android project, including the customized activity, manifest, resources, and Gradle wrapper.
+- `tauri-plugin-exora/` — Rust plugin bindings and the Kotlin Android passkey/fullscreen implementation in `android/src/main/java/`.
+- `src-tauri/gen/android/` — Android project, including the Kotlin `MainActivity`, manifest, resources, and Gradle wrapper.
 - `src/assets/` — images used by the app.
 - `design/blender/` — original Blender scenes for the app's artwork.
 - `tests/` — existing regression checks.
