@@ -33,6 +33,7 @@ pub fn run() {
 			transaction::pending_receipts::acknowledge_perpl_transaction,
 			transaction::wallet_balances::get_wallet_balances,
 			perpl::account::get_perpl_account,
+			perpl::setup::get_perpl_setup,
 			perpl::activity::get_perpl_activity,
 			perpl::read_key::has_perpl_read_key,
 			perpl::read_key::forget_perpl_read_key,

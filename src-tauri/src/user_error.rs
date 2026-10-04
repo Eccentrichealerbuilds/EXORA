@@ -13,7 +13,7 @@ fn contract_revert(data: &[u8], action: &str) -> Option<String> {
     let decoded = Error::abi_decode(data).ok();
     if let Some(ref error) = decoded { eprintln!("Decoded Perpl {action} revert: {error:?}"); }
     let message = match decoded {
-        Some(Error::AccountDoesNotExist(_)) => "Create and fund a Perpl account before trading".into(),
+        Some(Error::AccountDoesNotExist(_)) => "Set up trading from Home: get testnet MON for fees, claim AUSD, then create and fund your Perpl account".into(),
         Some(Error::AccountFrozen(_)) => "This Perpl account is frozen".into(),
         Some(Error::ExchangeHalted(_)) => "Perpl trading is temporarily halted".into(),
         Some(Error::ContractNotOperational(_)) | Some(Error::PerpetualNotActivated(_)) =>
@@ -72,7 +72,7 @@ fn transport_message(error: &TransportError, action: &str) -> String {
             if let Some(message) = contract_revert(&data, action) { return message; }
         }
         let message = payload.message.to_ascii_lowercase();
-        if message.contains("insufficient funds") { return "Insufficient MON for the network fee".into(); }
+        if message.contains("insufficient funds") { return "Not enough MON for network fees. Get testnet MON for this wallet from faucet.monad.xyz, then retry".into(); }
         if message.contains("nonce too low") || message.contains("replacement transaction") {
             return "Another transaction is pending. Wait for it to confirm, then try again".into();
         }

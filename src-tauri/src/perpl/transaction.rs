@@ -103,7 +103,7 @@ async fn prepare_call(
     };
     let gas_limit = estimated.saturating_add(estimated / 4);
     let max_cost = U256::from(gas_limit) * U256::from(fees.max_fee_per_gas);
-    if mon_balance < max_cost { return Err(format!("Insufficient MON for network fee (up to {} MON)", format_ether(max_cost))); }
+    if mon_balance < max_cost { return Err(format!("Not enough MON for network fees (up to {} MON). Get testnet MON for this wallet from faucet.monad.xyz, then retry", format_ether(max_cost))); }
     let typed = request.with_gas_limit(gas_limit).build_unsigned().map_err(|_| "Could not prepare the transaction for signing".to_string())?;
     let TypedTransaction::Eip1559(tx) = typed else { return Err("Expected EIP-1559 transaction".into()); };
     let pending = eip1559_and_pending_to_state(state, tx, from);
@@ -300,7 +300,7 @@ pub async fn build_perpl_funding(
         }
         FundingAction::CreateAccount | FundingAction::Deposit => {
             if matches!(action, FundingAction::CreateAccount) == exists {
-                return Err(if exists { "Perpl account already exists" } else { "Create your Perpl account first" }.into());
+                return Err(if exists { "Perpl account already exists" } else { "Open the trading setup checklist on Home to get MON, claim AUSD, and create your Perpl account first" }.into());
             }
             let wallet = ausd_balance(&provider, from).await?;
             if wallet < amount_raw { return Err("Insufficient AUSD in your wallet".into()); }

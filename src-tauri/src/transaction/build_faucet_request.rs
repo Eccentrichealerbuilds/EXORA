@@ -31,6 +31,14 @@ pub async fn build_faucet_request(
 	let faucet = agora_testnet_faucet_address();
 	let provider = crate::provider::provider();
 
+	let mon_balance = provider
+		.get_balance(from)
+		.await
+		.map_err(|error| crate::user_error::rpc(error, "check your MON balance"))?;
+	if mon_balance.is_zero() {
+		return Err("Get testnet MON for this wallet at faucet.monad.xyz first, then return to Home to claim AUSD".into());
+	}
+
 	let token_result = provider
 		.call(TransactionRequest::default()
 			.with_to(faucet)
@@ -71,14 +79,6 @@ pub async fn build_faucet_request(
 	if faucet_balance <= amount {
 		return Err("The AUSD faucet does not have enough tokens right now".into());
 	}
-
-	let mon_balance = provider
-		.get_balance(from)
-		.await
-		.map_err(|error| crate::user_error::rpc(error, "check your MON balance"))?;
-	if mon_balance.is_zero() {
-		return Err("This wallet needs MON to pay the faucet request's network fee".into());
-	}
 	let nonce = provider
 		.get_transaction_count(from)
 		.pending()
@@ -107,7 +107,7 @@ pub async fn build_faucet_request(
 	let max_cost = U256::from(gas_limit) * U256::from(fees.max_fee_per_gas);
 	if mon_balance < max_cost {
 		return Err(format!(
-			"Insufficient MON for the network fee (up to {} MON)",
+			"Not enough MON for network fees (up to {} MON). Get testnet MON for this wallet from faucet.monad.xyz, then retry",
 			format_ether(max_cost)
 		));
 	}

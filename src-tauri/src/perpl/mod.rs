@@ -1,4 +1,5 @@
 pub mod account;
+pub mod setup;
 pub mod activity;
 pub mod read_key;
 pub mod private_feed;

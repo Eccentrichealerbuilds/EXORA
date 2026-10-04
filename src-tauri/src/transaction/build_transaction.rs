@@ -53,7 +53,7 @@ pub async fn build_transaction(
 	let (transaction_to, native_value, calldata) = match asset {
 		Asset::MON => {
 			if amount_value > mon_balance {
-				return Err("Insufficient MON balance".into());
+				return Err("Not enough MON. Get testnet MON for this wallet before sending".into());
 			}
 			(recipient, amount_value, Bytes::new())
 		}
@@ -97,7 +97,7 @@ pub async fn build_transaction(
 	let max_cost = U256::from(gas_limit) * U256::from(fees.max_fee_per_gas);
 	if mon_balance < native_value + max_cost {
 		return Err(format!(
-			"Insufficient MON for transfer and network fee (up to {} MON)",
+			"Not enough MON for the transfer and network fee (up to {} MON). Reduce the amount or get more testnet MON",
 			format_ether(max_cost)
 		));
 	}

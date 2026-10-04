@@ -200,7 +200,7 @@ pub async fn prepare(input: &OrderInput, reviewed: Option<&OrderQuote>) -> Resul
         account_call.call(), minimum_call.call(), provider.get_block_number(),
     );
     let account = account.map_err(|error| {
-        if crate::perpl::account_missing(&error) { "Create and fund a Perpl account before trading".into() }
+        if crate::perpl::account_missing(&error) { "Set up trading from Home: get testnet MON for fees, claim AUSD, then create and fund your Perpl account".into() }
         else { crate::user_error::contract(error, "load your Perpl account") }
     })?;
     if account.frozen != 0 { return Err("This Perpl account is frozen".into()); }
