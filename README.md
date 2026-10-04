@@ -18,6 +18,7 @@ An Android perpetual trading app for Perpl on Monad testnet, built with React, T
 - `src-tauri/gen/android/` — Android project, including the Kotlin `MainActivity`, manifest, resources, and Gradle wrapper.
 - `src/assets/` — images used by the app.
 - `design/blender/` — original Blender scenes for the app's artwork.
+- `design/branding/` — store listing artwork; packaged icons live in the Android resources, `src-tauri/icons/`, and `public/`.
 - `tests/` — existing regression checks.
 
 ## Development
@@ -37,6 +38,10 @@ pnpm tauri android build   # Android build
 ```
 
 Tauri regenerates machine-specific Android bindings and settings. Local SDK paths, build outputs, signing keys, environment overrides, and dependency directories are excluded from Git. Keep `pnpm-lock.yaml` and `src-tauri/Cargo.lock` in version control. Do not commit wallet data or private credentials.
+
+## First trade on testnet
+
+Wallets without a Perpl account receive a setup checklist: get MON from the [Monad faucet](https://faucet.monad.xyz/) for network fees, claim AUSD from Home, then approve AUSD and create/fund a Perpl account from Portfolio. Rust checks wallet balances and Perpl's current minimum initial deposit. The checklist can be dismissed and reopened, and disappears after account creation is confirmed.
 
 ## Chart attribution
 

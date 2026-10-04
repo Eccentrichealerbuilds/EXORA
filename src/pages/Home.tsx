@@ -13,6 +13,7 @@ import faucetGatewayArt from "../assets/panels/faucet-gateway.webp";
 import marketHeaderArt from "../assets/panels/market-header.webp";
 import marketCellArt from "../assets/panels/market-cell.webp";
 import { InteractiveTokenCard } from "../components/InteractiveTokenCard";
+import { TradingSetupBanner, useTradingSetup } from "../components/TradingSetup";
 import { AppTabs } from "../components/AppTabs";
 import { PasskeySheet } from "../components/PasskeySheet";
 import { TransferSheet } from "../components/TransferSheet";
@@ -28,6 +29,7 @@ import type { PriceUpdate } from "../types.ts";
 
 type HomeRouteState = {
       sortedPrices?: PriceUpdate[];
+      setupAction?: string;
 };
 
 const FEATURED = [
@@ -219,6 +221,7 @@ function AccountMenu({ address, onCreatePasskey, onSwitchPasskey, onSignOut }: A
 }
 
 export default function Home() {
+      const tradingSetup = useTradingSetup();
       const navigate = useNavigate();
       const location = useLocation();
       const routeState = location.state as HomeRouteState | null;
@@ -229,6 +232,12 @@ export default function Home() {
       const [transferToken, setTransferToken] = useState<Asset>("AUSD");
       const [transferOpen, setTransferOpen] = useState(false);
       const [faucetOpen, setFaucetOpen] = useState(false);
+      useEffect(() => {
+            if (routeState?.setupAction !== "faucet") return;
+            setFaucetOpen(true);
+            const { setupAction: _, ...state } = routeState;
+            navigate(location.pathname, { replace: true, state });
+      }, [location.key, routeState, navigate, location.pathname]);
       const [balances, setBalances] = useState<WalletBalances | null>(null);
       const [balanceError, setBalanceError] = useState("");
       const [balanceLoading, setBalanceLoading] = useState(false);
@@ -328,6 +337,7 @@ export default function Home() {
                   </header>
 
                   <div className="mx-auto w-full max-w-5xl px-4 pb-12 pt-5 sm:px-8 sm:pt-8">
+                        <TradingSetupBanner />
                         <div className="flex items-center justify-center gap-2 overflow-hidden font-mono text-[10px] uppercase tracking-[0.16em] text-[#b8a9ff]" style={{ height: pullDistance }} aria-hidden="true">
                               <RefreshCwIcon className="h-4 w-4 shrink-0" style={{ transform: `rotate(${pullDistance * 3}deg)` }} />
                               {pullDistance >= 64 ? "Release to refresh" : "Pull to refresh"}
@@ -433,7 +443,7 @@ export default function Home() {
                         }}
                   />
                   {address && balances && <TransferSheet open={transferOpen} token={transferToken} address={address} balances={balances} onClose={() => setTransferOpen(false)} onConfirmed={refreshBalances} />}
-                  {address && <FaucetSheet open={faucetOpen} address={address} onClose={() => setFaucetOpen(false)} onConfirmed={refreshBalances} />}
+                  {address && <FaucetSheet open={faucetOpen} address={address} onClose={() => setFaucetOpen(false)} onConfirmed={() => { refreshBalances(); void tradingSetup.refresh(); }} />}
                   <AppTabs active="home" />
             </main>
       );
