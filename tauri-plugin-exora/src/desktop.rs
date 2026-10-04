@@ -11,7 +11,7 @@ pub fn init<R: Runtime, C: DeserializeOwned>(
 }
 
 /// The browser can preview the UI; native credentials and orientation require Android.
-pub struct Exora<R: Runtime>(PhantomData<R>);
+pub struct Exora<R: Runtime>(PhantomData<fn() -> R>);
 
 impl<R: Runtime> Exora<R> {
     pub async fn create_passkey(&self, _payload: PasskeyCreateRequest) -> crate::Result<CredentialResponse> {
