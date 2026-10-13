@@ -1,5 +1,11 @@
 target
 .env
+*.env
 alerts.json
 deliveries.json
+devices.json
+account-state.json
+*.tmp
+*.db
+*.sqlite*
 *service-account*.json
