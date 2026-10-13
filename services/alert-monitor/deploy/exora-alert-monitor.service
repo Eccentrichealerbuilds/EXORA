@@ -1,0 +1,42 @@
+[Unit]
+Description=EXORA price alert monitor
+After=network-online.target
+Wants=network-online.target
+ConditionPathExists=/etc/exora-alerts/firebase-service-account.json
+ConditionPathExists=/var/lib/exora-alerts/alerts.json
+StartLimitIntervalSec=300
+StartLimitBurst=3
+
+[Service]
+Type=simple
+User=exora-alerts
+Group=exora-alerts
+WorkingDirectory=/var/lib/exora-alerts
+EnvironmentFile=/etc/exora-alerts/monitor.env
+LoadCredential=firebase-service-account.json:/etc/exora-alerts/firebase-service-account.json
+Environment=GOOGLE_APPLICATION_CREDENTIALS=%d/firebase-service-account.json
+ExecStartPre=/opt/exora-alerts/bin/exora-alert-monitor --check
+ExecStart=/opt/exora-alerts/bin/exora-alert-monitor
+Restart=on-failure
+RestartSec=60
+TimeoutStopSec=20
+UMask=0077
+StateDirectory=exora-alerts
+StateDirectoryMode=0700
+NoNewPrivileges=true
+ProtectSystem=strict
+ProtectHome=true
+PrivateTmp=true
+PrivateDevices=true
+ProtectKernelTunables=true
+ProtectKernelModules=true
+ProtectControlGroups=true
+RestrictSUIDSGID=true
+LockPersonality=true
+CapabilityBoundingSet=
+RestrictAddressFamilies=AF_UNIX AF_INET AF_INET6
+MemoryMax=256M
+CPUQuota=40%
+
+[Install]
+WantedBy=multi-user.target
