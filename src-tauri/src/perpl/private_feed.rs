@@ -7,7 +7,7 @@ use rand::{rngs::OsRng, RngCore};
 use perpl_sdk::abi::dex::Exchange;
 use serde::Serialize;
 use serde_json::{json, Value};
-use tauri::{async_runtime::JoinHandle, ipc::Channel, AppHandle, Emitter, State};
+use tauri::{async_runtime::JoinHandle, ipc::Channel, AppHandle, State};
 use tokio_tungstenite::tungstenite::Message;
 use crate::transport::connect as connect_async;
 
@@ -159,6 +159,9 @@ async fn connect(app: &AppHandle, address: &str, channel: &Channel<PrivateEvent>
                                         let status = if item["st"].is_null() {
                                             orders.get(&id).map(|previous| previous.status).unwrap_or_default()
                                         } else { order.status };
+                                        if status != 8 && orders.get(&id).is_some_and(|previous| previous.status == 8) {
+                                            crate::alerts::account_notice(app,address,"protection","A protected order changed status. Review its execution in Portfolio.");
+                                        }
                                         if !matches!(status, 2 | 3 | 8) { orders.remove(&id); }
                                         else {
                                             if order.contract_order_id.is_none() {
@@ -195,7 +198,7 @@ async fn connect(app: &AppHandle, address: &str, channel: &Channel<PrivateEvent>
                             }
                             channel.send(PrivateEvent::AccountChanged).map_err(|e| e.to_string())?;
                             if value["mt"] == 25 {
-                                let _ = app.emit("perpl-trade-notification", json!({"message":"A trade fill was recorded for your wallet."}));
+                                crate::alerts::account_notice(app,address,"fill","A trade fill was recorded for your wallet.");
                             }
                         }
                         Some(100) => {

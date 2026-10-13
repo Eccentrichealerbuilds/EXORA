@@ -1,4 +1,4 @@
-use serde::Serialize;
+use serde::{Deserialize, Serialize};
 
 use crate::context::MarketInfo;
 
@@ -12,10 +12,11 @@ pub enum MarketEvent {
         open_interest: String, head: Option<u64> },
     Funding { market_id: u32, rate: i64 },
     Candles { market_id: u32, resolution: u32, snapshot: bool, candles: Vec<Candle> },
+    Book { market_id: u32, timestamp_ms: Option<u64>, asks: Vec<crate::book::BookLevel>, bids: Vec<crate::book::BookLevel> },
     Head { block: u64 },
 }
 
-#[derive(Clone, Serialize)]
+#[derive(Clone, Serialize, Deserialize)]
 #[serde(rename_all = "camelCase")]
 pub struct Candle {
     pub time: u64,

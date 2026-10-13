@@ -114,8 +114,22 @@ async fn history(market_id: u32, resolution: u32, before: Option<u64>, channel: 
     Ok(())
 }
 #[tauri::command]
-pub async fn get_chart_history(market_id: u32, resolution: u32, before: Option<u64>, on_candles: Channel<History>) -> Result<(), String> {
-    history(market_id, resolution, before, on_candles).await.map_err(|error| {
+pub async fn get_chart_history(app: tauri::AppHandle, market_id: u32, resolution: u32, before: Option<u64>, on_candles: Channel<History>) -> Result<(), String> {
+    let preferences = crate::local_data::get_preferences(app.clone());
+    let cache_key = format!("cache-chart-{market_id}-{resolution}");
+    if before.is_none() && preferences.keep_recent_charts {
+        if let Some(bars) = crate::local_data::read::<Vec<Candle>>(&app, &cache_key) {
+            with_series((market_id, resolution), |series| {
+                for bar in bars { series.bars.entry(bar.time).or_insert((bar, 0)); }
+            });
+        }
+    }
+    let result = history(market_id, resolution, before, on_candles).await;
+    if result.is_ok() && preferences.keep_recent_charts {
+        let bars: Vec<Candle> = with_series((market_id, resolution), |series| series.bars.values().rev().take(600).map(|(bar, _)| bar.clone()).collect());
+        let _ = crate::local_data::write(&app, &cache_key, &bars);
+    }
+    result.map_err(|error| {
         eprintln!("Chart history: {error}");
         "Chart history couldn't load. Check your connection and retry.".to_string()
     })
@@ -135,3 +149,5 @@ mod tests {
         let bars = decode(&values, 2); assert_eq!(bars.len(), 1); assert_eq!(bars[0].close, "1.25"); assert_eq!(bars[0].volume, "2.500000");
     }
 }
+
+pub fn clear_cache() { CACHE.lock().unwrap_or_else(|e| e.into_inner()).clear(); }

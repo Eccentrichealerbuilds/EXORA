@@ -98,6 +98,7 @@ pub fn read(
                     market.ask = Some(format_price::format_price(ask, d));
                     market.volume_usd = Some(format_price::format_decimal_string(volume, 6));
                     market.open_interest = Some(format_price::format_price(oi, market.size_decimals));
+                    crate::alerts::evaluate(app, market);
                     market.updated_at_ms = number(&state["at"], "t");
                     on_price.send(PriceUpdate::new(market, mark))?;
                     send_market(on_market, MarketEvent::State {
@@ -140,6 +141,9 @@ pub fn read(
         15 | 16 => {
             if let Some(market_id) = candle_market {
                 crate::book::update(market_id, &frame, mt == 15);
+                if let Some(market) = markets.get(&market_id) {
+                    if let Some(event) = crate::book::view(market) { send_market(on_market, event)?; }
+                }
             }
         }
         _ => {}

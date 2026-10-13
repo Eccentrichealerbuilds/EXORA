@@ -97,6 +97,7 @@ fn within_price_bound(side: Side, current: U256, bound: U256, closing: bool) -> 
 }
 
 fn format(raw: U256, decimals: u32) -> Result<String, String> {
+    if decimals == 0 { return Ok(raw.to_string()); }
     format_units(raw, decimals as u8).map_err(|_| "Could not format the market amount".to_string())
 }
 

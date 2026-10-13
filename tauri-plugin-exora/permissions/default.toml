@@ -1,3 +1,3 @@
 [default]
 description = "Default permissions for the plugin"
-permissions = ["allow-create-passkey", "allow-get-credential", "allow-set-chart-fullscreen"]
+permissions = ["allow-create-passkey", "allow-get-credential", "allow-set-chart-fullscreen", "allow-get-push-status", "allow-configure-push", "allow-set-live-session", "allow-watch-push", "allow-unwatch-push"]

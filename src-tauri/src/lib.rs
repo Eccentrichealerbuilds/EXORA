@@ -3,6 +3,10 @@ pub use crate::transaction::provider;
 pub use crate::transaction::review_back_to_ts;
 mod transaction;
 mod perpl;
+mod local_data;
+mod alerts;
+mod push;
+mod remote_alerts;
 mod utils;
 mod user_error;
 mod websocket;
@@ -12,7 +16,11 @@ pub type AppError = Box<dyn std::error::Error + Send + Sync>;
 
 #[cfg_attr(mobile, tauri::mobile_entry_point)]
 pub fn run() {
-	tauri::Builder::default()
+	let builder = tauri::Builder::default();
+    #[cfg(mobile)]
+    let builder = builder.plugin(tauri_plugin_biometric::init()).plugin(tauri_plugin_haptics::init());
+    builder
+        .plugin(tauri_plugin_notification::init())
 		.plugin(tauri_plugin_opener::init())
 		.plugin(tauri_plugin_exora::init())
 		.manage(pending_to_state::TransactionState::default())
@@ -22,7 +30,29 @@ pub fn run() {
 		.manage(perpl::trade_key::TradeKeyState::default())
 		.manage(perpl::private_feed::PrivateFeedTask::default())
 		.invoke_handler(tauri::generate_handler![
-			commands::start_feed,
+			alerts::activate_alerts,
+            alerts::list_price_alerts,
+            push::drain_push_inbox,
+            remote_alerts::remote_alert_status,
+            remote_alerts::connect_remote_alerts,
+            remote_alerts::enable_remote_account_alerts,
+            remote_alerts::disconnect_remote_alerts,
+            remote_alerts::sync_remote_alerts,
+            alerts::set_alert_visibility,
+            alerts::get_alert_preferences,
+            alerts::save_alert_preferences,
+            alerts::create_price_alert,
+            alerts::remove_price_alert,
+            local_data::get_preferences,
+            local_data::save_preferences,
+            local_data::clear_read_cache,
+            local_data::get_journal_note,
+            local_data::save_journal_note,
+            perpl::performance::get_perpl_performance,
+            perpl::planner::preview_trade_plan,
+            perpl::health::preview_margin_change,
+            perpl::health::percentage_amount,
+            commands::start_feed,
 			commands::stop_feed,
             candles::get_chart_history,
 			transaction::build_transaction::build_transaction,
@@ -59,6 +89,7 @@ pub fn run() {
 			perpl::transaction::build_perpl_cancel,
 			perpl::transaction::build_perpl_change,
 			perpl::transaction::build_perpl_funding,
+            perpl::transaction::build_perpl_margin,
 			perpl::transaction::build_perpl_forwarding
 		])
 		.run(tauri::generate_context!())

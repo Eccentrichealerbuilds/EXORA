@@ -37,3 +37,31 @@ pub struct PasskeyGetRequest {
 	pub user_verification: String,
 	pub timeout: Option<u64>,
 }
+
+#[derive(Clone, Default, Deserialize, Serialize)]
+#[serde(rename_all = "camelCase")]
+pub struct PushStatus {
+    pub configured: bool,
+    pub enabled: bool,
+    pub project_id: Option<String>,
+    pub installation_id: Option<String>,
+}
+#[derive(Clone, Deserialize, Serialize)]
+#[serde(rename_all = "camelCase")]
+pub struct PushMessage {
+    pub id: String,
+    pub tapped: bool,
+    pub title: String,
+    pub body: String,
+    pub screen: String,
+    pub market_id: Option<String>,
+    pub observed_at: Option<String>,
+}
+#[derive(Default, Deserialize)]
+pub struct PushInbox { pub events: Vec<PushMessage> }
+
+#[derive(Debug, serde::Deserialize)]
+#[serde(rename_all = "camelCase")]
+pub struct PushVerification { pub claim_hash: String, pub challenge: String, pub registration_id: String }
+#[derive(Debug, Default, serde::Deserialize)]
+pub struct PushVerificationInbox { pub verification: Option<PushVerification> }

@@ -6,6 +6,9 @@ plugins {
     id("rust")
 }
 
+// Firebase configuration is local and excluded from Git. Builds without it keep push unavailable.
+if (file("google-services.json").exists()) { apply(plugin = "com.google.gms.google-services") }
+
 val tauriProperties = Properties().apply {
     val propFile = file("tauri.properties")
     if (propFile.exists()) {

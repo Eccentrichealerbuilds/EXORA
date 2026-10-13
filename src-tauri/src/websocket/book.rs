@@ -70,3 +70,25 @@ pub fn estimate(market_id: u32, buy: bool, worst_price: U256, quantity: U256) ->
         average_price_raw: if filled.is_zero() { None } else { Some(weighted / filled) },
         timestamp_ms: book.timestamp_ms })
 }
+
+// Bounded view for the UI. All scaling stays in Rust; the complete book stays here.
+#[derive(Clone, serde::Serialize)]
+pub struct BookLevel { pub price: String, pub size: String, pub depth: f64 }
+
+pub fn view(market: &crate::context::MarketInfo) -> Option<crate::market_event::MarketEvent> {
+    let books = BOOKS.read().ok()?;
+    let book = books.get(&market.id)?;
+    let asks: Vec<_> = book.asks.iter().take(12).collect();
+    let bids: Vec<_> = book.bids.iter().rev().take(12).collect();
+    let largest = asks.iter().chain(bids.iter()).map(|(_, size)| **size).max().unwrap_or(1).max(1);
+    let convert = |(price, size): (&u64, &u64)| BookLevel {
+        price: crate::format_price::format_price(*price, market.price_decimals),
+        size: crate::format_price::format_price(*size, market.size_decimals),
+        depth: *size as f64 / largest as f64,
+    };
+    Some(crate::market_event::MarketEvent::Book {
+        market_id: market.id, timestamp_ms: book.timestamp_ms,
+        asks: asks.into_iter().rev().map(convert).collect(),
+        bids: bids.into_iter().map(convert).collect(),
+    })
+}

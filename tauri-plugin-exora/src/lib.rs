@@ -37,7 +37,12 @@ pub fn init<R: Runtime>() -> TauriPlugin<R> {
 		.invoke_handler(tauri::generate_handler![
 			commands::create_passkey,
 			commands::get_credential,
-            commands::set_chart_fullscreen
+            commands::set_chart_fullscreen,
+            commands::get_push_status,
+            commands::configure_push,
+            commands::set_live_session,
+            commands::watch_push,
+            commands::unwatch_push
 		])
 		.setup(|app, api| {
 			#[cfg(mobile)]

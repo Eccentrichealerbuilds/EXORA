@@ -341,3 +341,29 @@ pub async fn build_perpl_forwarding(
     let calldata = Exchange::allowOrderForwardingCall { allow: true }.abi_encode();
     prepare_call(state, from, exchange_address(), calldata.into(), "forwarding".into(), None, None).await
 }
+
+#[tauri::command]
+pub async fn build_perpl_margin(state: State<'_, TransactionState>, address: String, market_id: u32,
+    mode: String, amount: String) -> Result<PerplTxReview, String> {
+    let from: Address = address.parse().map_err(|_| "Invalid wallet address")?;
+    let raw = parse_amount(Some(amount.clone()), 6)?;
+    if raw.is_zero() { return Err("Enter an AUSD amount above zero".into()); }
+    let account = crate::perpl::account::read(from, false).await?;
+    if !account.exists || account.frozen { return Err("Your Perpl account is unavailable for margin changes".into()); }
+    let position = account.positions.iter().find(|p| p.market_id == market_id).ok_or("This position is no longer open")?;
+    let (calldata, action) = match mode.as_str() {
+        "add" => {
+            let available = parse_amount(Some(account.available_balance.clone()), 6)?;
+            if raw > available { return Err("Not enough available AUSD. Deposit funds or reduce the amount".into()); }
+            (Exchange::increasePositionCollateralCall { perpId: U256::from(market_id), amountCNS: raw }.abi_encode(), "addMargin")
+        },
+        "remove" => {
+            let deposit = parse_amount(Some(position.deposit.clone()), 6)?;
+            if raw >= deposit { return Err("Keep collateral in this position. Enter a smaller removal request".into()); }
+            // The admin-only decreasePositionCollateral must never be called by the wallet.
+            // clampToMaximum=false preserves the user's requested amount.
+            (Exchange::requestDecreasePositionCollateralCall { perpId: U256::from(market_id), amountCNS: raw, clampToMaximum: false }.abi_encode(), "requestRemoveMargin")
+        }, _ => return Err("Choose add or remove margin".into()),
+    };
+    prepare_call(state, from, exchange_address(), calldata.into(), format!("{action}:{market_id}"), Some(amount), None).await
+}

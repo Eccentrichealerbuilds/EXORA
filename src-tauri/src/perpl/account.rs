@@ -27,6 +27,7 @@ pub struct PositionView {
     pub deposit: String,
     pub pnl: String,
     pub premium_pnl: String,
+    pub health: super::health::Health,
 }
 
 #[derive(Clone, Serialize)]
@@ -127,6 +128,12 @@ pub async fn read(address: Address, full_scan: bool) -> Result<AccountView, Stri
                 mark_price: format_units(mark, decimals as u8).map_err(|_| "Could not format the mark price".to_string())?,
                 deposit: amount(deposit)?,
                 pnl: signed_amount(&pnl),
+                health: super::health::estimate(side == 0,
+                    format_units(entry, decimals as u8).unwrap_or_default().parse().unwrap_or(f64::NAN),
+                    format_units(mark, decimals as u8).unwrap_or_default().parse().unwrap_or(f64::NAN),
+                    format_units(size, market.size_decimals as u8).unwrap_or_default().parse().unwrap_or(f64::NAN),
+                    amount(deposit)?.parse().unwrap_or(f64::NAN),
+                    signed_amount(&premium_pnl).parse().unwrap_or(f64::NAN), market.maintenance_margin),
                 premium_pnl: signed_amount(&premium_pnl),
             });
         }
@@ -178,6 +185,7 @@ pub fn start_account_feed(app: AppHandle, task: State<'_, AccountFeedTask>, addr
             match read(address, successful_reads % 10 == 0).await {
                 Ok(account) => {
                     successful_reads += 1;
+                    crate::alerts::position_health(&app,&account);
                     if on_account.send(account).is_err() { break; }
                     let _ = app.emit("perpl-account-status", serde_json::json!({"state":"connected"}));
                 }
