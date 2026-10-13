@@ -1,18 +1,9 @@
+import { HomeScreen } from "../design/pages/HomeScreen";
 import { notify } from "../notifications/store";
 import { useEffect, useRef, useState, type TouchEvent } from "react";
 import { useLocation, useNavigate } from "react-router";
 import { AnimatePresence, motion } from "framer-motion";
-import { ArrowRightIcon, ArrowUpRightIcon, ChevronDownIcon, CloudOffIcon, CopyIcon, FingerprintIcon, LogOutIcon, PlusIcon, RotateCwIcon, WalletMinimalIcon } from "lucide-react";
-import ausdCardArt from "../assets/cards/ausd-card.webp";
-import ausdCardBase from "../assets/cards/ausd-card-base.webp";
-import ausdCardEmblem from "../assets/cards/ausd-card-emblem.webp";
-import monCardArt from "../assets/cards/mon-card.webp";
-import monCardBase from "../assets/cards/mon-card-base.webp";
-import monCardEmblem from "../assets/cards/mon-card-emblem.webp";
-import faucetGatewayArt from "../assets/panels/faucet-gateway.webp";
-import marketHeaderArt from "../assets/panels/market-header.webp";
-import marketCellArt from "../assets/panels/market-cell.webp";
-import { InteractiveTokenCard } from "../components/InteractiveTokenCard";
+import { BellIcon, ArrowRightIcon, ChevronDownIcon, CloudOffIcon, CopyIcon, FingerprintIcon, LogOutIcon, PlusIcon, RotateCwIcon } from "lucide-react";
 import { TradingSetupBanner, useTradingSetup } from "../components/TradingSetup";
 import { AppTabs } from "../components/AppTabs";
 import { PasskeySheet } from "../components/PasskeySheet";
@@ -24,7 +15,7 @@ import { loadPublicAccount } from "../utils/storageSaveAndLoad.ts";
 import { signOut, startSession } from "../utils/authSession";
 import { formatBalance } from "../utils/formatBalance.ts";
 import { errorText } from "../utils/errorText";
-import { usePrices } from "../websocket/usePrices.ts";
+import { useTradingSession } from "../trading/TradingSession";
 import type { PriceUpdate } from "../types.ts";
 
 type HomeRouteState = {
@@ -32,10 +23,6 @@ type HomeRouteState = {
       setupAction?: string;
 };
 
-const FEATURED = [
-      { symbol: "AUSD", name: "Agora USD", color: "#5ec8ff", still: ausdCardArt, base: ausdCardBase, emblem: ausdCardEmblem },
-      { symbol: "MON", name: "Monad", color: "#8873ff", still: monCardArt, base: monCardBase, emblem: monCardEmblem },
-] as const;
 
 function decimalUnits(value: string, decimals: number) {
       const [whole, fraction = ""] = value.split(".");
@@ -66,15 +53,6 @@ function BrandMark() {
                   </span>
                   <span className="font-display text-sm font-bold tracking-[0.22em]">EXORA</span>
             </div>
-      );
-}
-
-function TokenGlyph({ glyph, color }: { glyph: string; color: string }) {
-      return (
-            <span className="relative grid h-10 w-10 shrink-0 place-items-center" aria-hidden="true">
-                  <span className="absolute h-7 w-7 rotate-45 rounded-[9px]" style={{ backgroundColor: color }} />
-                  <span className="relative font-display text-xs font-bold text-[#0a0710]">{glyph}</span>
-            </span>
       );
 }
 
@@ -245,7 +223,7 @@ export default function Home() {
       const pullStartY = useRef<number | null>(null);
       const pullDistanceRef = useRef(0);
       const [pullDistance, setPullDistance] = useState(0);
-      const { prices, status } = usePrices();
+      const { prices, status } = useTradingSession();
       useEffect(() => {
             const requestId = ++balanceRequestId.current;
             if (!address) { setBalances(null); setBalanceError(""); setBalanceLoading(false); return; }
@@ -314,7 +292,7 @@ export default function Home() {
 
 
       const switchPasskey = async () => {
-            await chooseFromExistingPasskey();
+            await chooseFromExistingPasskey(true);
             const account = loadPublicAccount();
             if (!account) throw new Error("Sign-in did not return a wallet.");
             startSession(account.address);
@@ -323,10 +301,11 @@ export default function Home() {
       };
 
       return (
-            <main onTouchStart={onPullStart} onTouchMove={onPullMove} onTouchEnd={onPullEnd} onTouchCancel={onPullCancel} className="scrollbar-hidden min-h-[100dvh] w-full select-none bg-[#050407] pb-[88px] text-[#f6f2ff]">
-                  <header className="sticky top-0 z-20 border-b border-[rgba(230,224,255,0.08)] bg-[rgba(5,4,7,0.82)] backdrop-blur-xl" style={{ paddingTop: "env(safe-area-inset-top)" }}>
-                        <div className="mx-auto flex h-14 max-w-5xl items-center justify-between px-4 sm:px-8">
+            <main onTouchStart={onPullStart} onTouchMove={onPullMove} onTouchEnd={onPullEnd} onTouchCancel={onPullCancel} className="exora-design scrollbar-hidden min-h-[100dvh] w-full select-none bg-canvas pb-[88px] text-[#f6f2ff]">
+                  <header className="sticky top-0 z-20 border-b border-[rgba(230,224,255,0.08)] bg-canvas backdrop-blur-xl" style={{ paddingTop: "env(safe-area-inset-top)" }}>
+                        <div className="mx-auto flex h-14 max-w-[540px] items-center justify-between px-4 sm:px-8">
                               <BrandMark />
+                              <button type="button" onClick={() => navigate("/alerts")} aria-label="Alerts" className="ml-auto mr-2 grid h-11 w-11 place-items-center text-accent"><BellIcon className="h-5 w-5" /></button>
                               <AccountMenu
                                     address={address}
                                     onCreatePasskey={() => setCreatePasskeyOpen(true)}
@@ -336,103 +315,29 @@ export default function Home() {
                         </div>
                   </header>
 
-                  <div className="mx-auto w-full max-w-5xl px-4 pb-12 pt-5 sm:px-8 sm:pt-8">
-                        <TradingSetupBanner />
-                        <div className="flex items-center justify-center gap-2 overflow-hidden font-mono text-[10px] uppercase tracking-[0.16em] text-[#b8a9ff]" style={{ height: pullDistance }} aria-hidden="true">
-                              <RotateCwIcon strokeWidth={1.4} className="h-4 w-4 shrink-0" style={{ transform: `rotate(${pullDistance * 3}deg)` }} />
+                  <div className="mx-auto w-full max-w-[540px] pb-6">
+                        <div className="px-[18px] pt-3"><TradingSetupBanner /></div>
+                        <div className="flex items-center justify-center gap-2 overflow-hidden text-xs text-accent" style={{ height: pullDistance }} aria-hidden="true">
+                              <RotateCwIcon className="h-4 w-4" style={{ transform: `rotate(${pullDistance * 3}deg)` }} />
                               {pullDistance >= 64 ? "Release to refresh" : "Pull to refresh"}
                         </div>
-
-                        <div className="lg:grid lg:grid-cols-[minmax(0,420px)_1fr] lg:items-start lg:gap-10">
-                              <section aria-labelledby="portfolio-title">
-                                    <h1 id="portfolio-title" className="sr-only">Portfolio</h1>
-                                    <div className="flex items-end justify-between gap-3">
-                                          <div className="min-w-0">
-                                                <div className="flex items-center gap-2">
-                                                      <span aria-hidden="true" className="grid h-8 w-8 shrink-0 place-items-center rounded-[11px] border border-[#d5c7ff]/20 bg-linear-to-br from-[#c2adff]/20 via-[#8873ff]/10 to-[#100d1c] shadow-[inset_0_1px_0_rgba(241,234,255,0.16)]"><WalletMinimalIcon strokeWidth={1.4} className="h-4 w-4 text-[#d8ccf5]" /></span>
-                                                      <p className="font-mono text-[9px] uppercase tracking-[0.18em] text-[#aaa0ba]">Estimated total<span className="mt-1 block text-[8px] tracking-[0.12em] text-[#756d83]">Monad testnet</span></p>
-                                                      <button type="button" onClick={refreshBalances} disabled={!address || balanceLoading} aria-label="Refresh balances" title="Refresh balances" className="group grid h-11 w-11 shrink-0 place-items-center rounded-[14px] outline-none focus-visible:ring-2 focus-visible:ring-[#9b87ff] disabled:opacity-50"><span className="grid h-8 w-8 place-items-center rounded-[11px] border border-[#d5c7ff]/20 bg-linear-to-br from-[#c2adff]/20 via-[#8873ff]/10 to-[#100d1c] text-[#d8ccf5] shadow-[inset_0_1px_0_rgba(241,234,255,0.16),0_3px_10px_rgba(0,0,0,0.15)] transition-colors group-hover:border-[#c2adff]/45"><RotateCwIcon strokeWidth={1.4} className={`h-4 w-4 ${balanceLoading ? "animate-spin motion-reduce:animate-none" : ""}`} aria-hidden="true" /></span></button>
-                                                </div>
-                                                <p className="mt-1.5 truncate font-display text-[34px] font-semibold tabular-nums leading-10 text-[#fffaff] sm:text-[40px] sm:leading-[48px]">{estimatedTotal ?? "—"}</p>
-                                                <p className="mt-1 break-all font-mono text-[11px] text-[#8f879c]">{address ?? "No address available"}</p>
-                                                {balanceLoading && <p className="mt-2 font-mono text-[10px] text-[#a59db3]">Fetching balances…</p>}
-                                          </div>
-                                          <button type="button" disabled={!balances || !address} onClick={() => { setTransferToken("AUSD"); setTransferOpen(true); }} className="group mb-1 flex h-11 shrink-0 items-center gap-2 rounded-full border border-[rgba(230,224,255,0.22)] bg-[rgba(255,255,255,0.04)] pl-4 pr-1.5 font-display text-sm font-semibold text-[#f7f4ff] outline-none disabled:cursor-not-allowed disabled:opacity-40">
-                                                Transfer
-                                                <span className="grid h-8 w-8 place-items-center rounded-full bg-[#8873ff]" aria-hidden="true">
-                                                      <ArrowUpRightIcon className="h-4 w-4 text-[#0a0710]" />
-                                                </span>
-                                          </button>
-                                    </div>
-
-                                    {balanceError && <div role="alert" className="mt-4 flex items-center gap-3 rounded-[18px] border border-[rgba(255,142,166,0.25)] bg-[linear-gradient(110deg,rgba(255,142,166,0.08),rgba(136,115,255,0.06))] p-3 shadow-[inset_0_1px_0_rgba(255,255,255,0.08)]">
-                                          <span className="grid h-10 w-10 shrink-0 place-items-center rounded-[12px] border border-[rgba(255,142,166,0.24)] bg-[rgba(255,142,166,0.1)]"><CloudOffIcon className="h-5 w-5 text-[#ff9bb1]" aria-hidden="true" /></span>
-                                          <span className="min-w-0 flex-1"><span className="block font-display text-sm font-semibold text-[#f7f4ff]">Balance sync unavailable</span><span className="block font-mono text-[10px] leading-4 text-[#aaa2b5]">Pull down or tap retry.</span></span>
-                                          <button type="button" onClick={refreshBalances} disabled={balanceLoading} aria-label="Retry balance refresh" className="grid h-11 w-11 shrink-0 place-items-center rounded-[14px] border border-[#d5c7ff]/20 bg-linear-to-br from-[#c2adff]/20 via-[#8873ff]/10 to-[#100d1c] text-[#d8ccf5] shadow-[inset_0_1px_0_rgba(241,234,255,0.16)] outline-none transition-colors hover:border-[#c2adff]/45 focus-visible:ring-2 focus-visible:ring-[#9b87ff] disabled:opacity-50"><RotateCwIcon strokeWidth={1.4} className={`h-4 w-4 ${balanceLoading ? "animate-spin motion-reduce:animate-none" : ""}`} aria-hidden="true" /></button>
-                                    </div>}
-
-                                    <div className="mt-6 grid grid-cols-2 gap-2.5 sm:gap-3">
-                                          {FEATURED.map((token, index) => (
-                                                <InteractiveTokenCard
-                                                      key={token.symbol}
-                                                      symbol={token.symbol}
-                                                      name={token.name}
-                                                      color={token.color}
-                                                      still={token.still}
-                                                      base={token.base}
-                                                      emblem={token.emblem}
-                                                      balance={balances ? formatBalance(token.symbol === "MON" ? balances.mon : balances.ausd) : "—"}
-                                                      usdValue={token.symbol === "AUSD" && ausdCents !== null ? displayUsd(ausdCents) : token.symbol === "MON" && monCents !== null ? displayUsd(monCents) : "USD value unavailable"}
-                                                      disabled={!balances || !address}
-                                                      index={index}
-                                                      onSend={() => { setTransferToken(token.symbol); setTransferOpen(true); }}
-                                                />
-                                          ))}
-                                    </div>
-                                    <button type="button" disabled={!address} onClick={() => setFaucetOpen(true)} aria-label="Request AUSD from faucet" className="group relative mt-3 flex h-[72px] w-full items-center overflow-hidden rounded-[18px] pl-[78px] pr-[62px] text-left outline-none transition-transform active:scale-[0.99] focus-visible:ring-2 focus-visible:ring-[#5ec8ff] disabled:cursor-not-allowed disabled:opacity-40">
-                                          <img src={faucetGatewayArt} alt="" aria-hidden="true" className="pointer-events-none absolute inset-0 h-full w-full object-fill" />
-                                          <span aria-hidden="true" className="pointer-events-none absolute inset-0 bg-[linear-gradient(90deg,transparent_0%,rgba(3,8,18,0.36)_26%,rgba(3,8,18,0.18)_72%,transparent_100%)]" />
-                                          <span className="relative z-10 min-w-0"><span className="block truncate font-display text-[13px] font-semibold text-[#e9f8ff]">Get testnet AUSD</span><span className="block truncate font-mono text-[10px] text-[#a8c3d1]">Request from Agora faucet</span></span>
-                                    </button>
-                              </section>
-
-                              <section aria-labelledby="tokens-title" className="mt-8 lg:mt-0">
-                                    <div className="relative mb-2 h-[58px] overflow-hidden rounded-[16px]">
-                                          <img src={marketHeaderArt} alt="" aria-hidden="true" className="pointer-events-none absolute inset-0 h-full w-full object-fill" />
-                                          <h2 id="tokens-title" className="relative z-10 flex h-full items-center pl-[60px] pr-4 font-display text-base font-semibold text-[#f7f4ff]">All Perpetual Markets</h2>
-                                    </div>
-                                    <ul className="space-y-1.5">
-                                          {sortedPrices.map((token) => {
-                                                const symbol = token.symbol.split(/[-/]/)[0].toUpperCase();
-                                                const meta = TOKEN_META[symbol] ?? { name: symbol, color: "#a99bff" };
-                                                return (
-                                                      <li key={token.marketId} className="relative isolate min-h-[76px] overflow-hidden rounded-[18px]">
-                                                            <button type="button" onClick={() => navigate("/trade", { state: { marketId: token.marketId } })} className="relative flex min-h-[76px] w-full items-center px-5 py-3 text-left outline-none focus-visible:ring-2 focus-visible:ring-[#8873ff]">
-                                                            <img src={marketCellArt} alt="" aria-hidden="true" className="pointer-events-none absolute inset-0 h-full w-full object-fill" />
-                                                            <span aria-hidden="true" className="pointer-events-none absolute inset-0 bg-[linear-gradient(90deg,rgba(3,6,14,0.05),rgba(3,6,14,0.15)_65%,rgba(3,6,14,0.32))]" />
-                                                            <div className="relative z-10 flex w-full items-center gap-3">
-                                                                  <TokenGlyph glyph={symbol[0] ?? "?"} color={meta.color} />
-                                                                  <div className="min-w-0 flex-1">
-                                                                        <p className="truncate font-display text-[15px] font-semibold text-[#f7f4ff]">{meta.name}</p>
-                                                                        <p className="font-mono text-[10px] text-[#8f879c]">{token.symbol}</p>
-                                                                  </div>
-                                                                  <p className="font-mono text-[13px] font-medium tabular-nums text-[#e7e1f3]">{token.price.startsWith("$") ? token.price : `$${token.price}`}</p>
-                                                            </div>
-                                                            </button>
-                                                      </li>
-                                                );
-                                          })}
-                                          {sortedPrices.length === 0 && (
-                                                <li className="relative flex min-h-[76px] items-center justify-center overflow-hidden rounded-[18px] px-4 py-6 text-center font-mono text-xs text-[#a9a2bb]">
-                                                      <img src={marketCellArt} alt="" aria-hidden="true" className="pointer-events-none absolute inset-0 h-full w-full object-fill" />
-                                                      <span className="relative z-10">
-                                                      {status.state === "error" ? "Market prices are unavailable." : "Loading market prices…"}
-                                                      </span>
-                                                </li>
-                                          )}
-                                    </ul>
-                              </section>
-                        </div>
+                        {balanceError && <div role="alert" className="mx-[18px] mb-3 flex items-center gap-3 border border-short/30 p-3 text-xs">
+                          <CloudOffIcon className="h-5 w-5 text-short" /><span className="flex-1">Balance sync unavailable. Pull down or retry.</span>
+                          <button type="button" disabled={balanceLoading} onClick={refreshBalances} className="min-h-11 text-accent">Retry</button>
+                        </div>}
+                        <HomeScreen balancesReady={!!balances} refreshing={balanceLoading} totalValue={estimatedTotal ?? "—"} networkLabel={balanceLoading ? "Updating balances · Monad testnet" : "Monad testnet"}
+                          balances={[
+                            { symbol: "AUSD", name: "Agora USD", amount: balances ? formatBalance(balances.ausd) : "—", value: ausdCents === null ? "—" : displayUsd(ausdCents) },
+                            { symbol: "MON", name: "Monad", amount: balances ? formatBalance(balances.mon) : "—", value: monCents === null ? "—" : displayUsd(monCents) },
+                          ]}
+                          markets={sortedPrices.map(token => ({ symbol: token.symbol, name: TOKEN_META[token.symbol.split(/[-/]/)[0].toUpperCase()]?.name ?? token.symbol, price: token.price.startsWith("$") ? token.price : `$${token.price}` }))}
+                          pricesNote={sortedPrices.length ? (status.state === "connected" ? "Live prices from Perpl" : "Reconnecting · showing last received prices") : status.state === "error" ? "Market prices are unavailable." : "Loading market prices…"}
+                          faucetToken="AUSD" onRefresh={() => { if (!balanceLoading) refreshBalances(); }}
+                          onTransfer={() => { if (balances) { setTransferToken("AUSD"); setTransferOpen(true); } }}
+                          onSend={symbol => { if (balances) { setTransferToken(symbol as Asset); setTransferOpen(true); } }}
+                          onFaucet={() => setFaucetOpen(true)}
+                          onOpenMarket={symbol => { const market = sortedPrices.find(item => item.symbol === symbol); if (market) navigate("/trade", { state: { marketId: market.marketId } }); }}
+                          onDataSaver={() => navigate("/preferences")} />
                   </div>
                   <PasskeySheet
                         open={createPasskeyOpen}

@@ -32,7 +32,7 @@ export function useChartData(marketId: number, resolution: number) {
       setData(current => ({ key, candles: result.cached
         ? merge(result.candles, current.key === key ? current.candles : [])
         : merge(current.key === key ? current.candles : [], result.candles) }));
-      if (!result.cached) before.current = Math.min(before.current ?? Infinity, result.from - 1);
+      if (!result.cached) before.current = Math.min(before.current ?? Infinity, Math.max(0, result.from - 1));
     };
     try { await invoke("get_chart_history", {marketId, resolution, before: end, onCandles: channel}); retryOlder.current = false; }
     catch { if (activeKey.current === key) { retryOlder.current = older; setHistoryError("Chart history couldn't load. Tap retry to reconnect."); } }
@@ -42,5 +42,5 @@ export function useChartData(marketId: number, resolution: number) {
     return () => { activeKey.current = ""; flight.current = null; };
   }, [key]);
   return { candles: data.key === key ? data.candles : [], acceptCandles: live,
-    canLoadOlder: count.current < 12000 && before.current !== 0, loadHistory: request, historyLoading: loading, historyError };
+    canLoadOlder: count.current < 12000 && before.current !== null && before.current > 0, loadHistory: request, historyLoading: loading, historyError };
 }

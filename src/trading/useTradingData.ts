@@ -1,14 +1,19 @@
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { startFeed } from "../websocket/feed";
-import type { ConnectionState } from "../types";
-import type { MarketEvent, MarketInfo } from "./types";
+import type { ConnectionState, PriceUpdate } from "../types";
+import type { MarketEvent, MarketInfo, OrderBookView } from "./types";
 import { watchAccount, type Account } from "./service";
 import { useChartData } from "./useChartData";
 import { errorText } from "../utils/errorText";
 
 const emptyStatus: ConnectionState = { state: "connecting", message: "Connecting to Perpl" };
 
-export function useTradingData(address: string | null, selectedMarket: number, resolution: number) {
+export function useTradingData(address: string | null, selectedMarket: number, resolution: number, enabled = true) {
+  const [prices, setPrices] = useState<Record<number, PriceUpdate>>({});
+  const bookReceivedAt = useRef(0);
+  const [bookFresh, setBookFresh] = useState(false);
+  useEffect(() => { const timer = window.setInterval(() => setBookFresh(bookReceivedAt.current > 0 && Date.now() - bookReceivedAt.current < 30_000), 1000); return () => window.clearInterval(timer); }, []);
+  const [book, setBook] = useState<OrderBookView | null>(null);
   const [markets, setMarkets] = useState<Record<number, MarketInfo>>({});
   const chart = useChartData(selectedMarket, resolution);
   const [status, setStatus] = useState<ConnectionState>(emptyStatus);
@@ -16,9 +21,11 @@ export function useTradingData(address: string | null, selectedMarket: number, r
   const [accountError, setAccountError] = useState("");
 
   useEffect(() => {
+    if (!enabled) return;
     let active = true;
     let stop: (() => void) | undefined;
     setStatus(emptyStatus);
+    setBook(null); bookReceivedAt.current = 0; setBookFresh(false);
     const onMarket = (event: MarketEvent) => {
       if (!active) return;
       if (event.type === "context") {
@@ -36,18 +43,20 @@ export function useTradingData(address: string | null, selectedMarket: number, r
                 openInterest: event.openInterest, updatedAtMs: Date.now() }
             : { ...previous, fundingRate: event.rate } };
         });
+      } else if (event.type === "book" && event.marketId === selectedMarket) {
+        setBook(event); bookReceivedAt.current = Date.now(); setBookFresh(true);
       } else if (event.type === "candles" && event.marketId === selectedMarket && event.resolution === resolution) {
         chart.acceptCandles(event.candles);
       }
     };
-    void startFeed(() => {}, value => { if (active) { setStatus(value); if (value.state === "connected") void chart.loadHistory(false); } }, onMarket, selectedMarket, resolution)
+    void startFeed(price => { if (active) setPrices(current => ({...current, [price.marketId]: price})); }, value => { if (active) { setStatus(value); if (value.state === "connected") void chart.loadHistory(false); } }, onMarket, selectedMarket, resolution)
       .then(cleanup => { if (active) stop = cleanup; else cleanup(); })
       .catch(error => { if (active) setStatus({ state: "error", message: errorText(error) }); });
     return () => { active = false; stop?.(); };
-  }, [selectedMarket, resolution]);
+  }, [selectedMarket, resolution, enabled]);
 
   useEffect(() => {
-    if (!address) { setAccount(null); return; }
+    if (!address || !enabled) { setAccount(null); return; }
     let active = true;
     let stop: (() => void) | undefined;
     void watchAccount(address,
@@ -56,7 +65,7 @@ export function useTradingData(address: string | null, selectedMarket: number, r
       .then(cleanup => { if (active) stop = cleanup; else cleanup(); })
       .catch(error => { if (active) setAccountError(errorText(error)); });
     return () => { active = false; stop?.(); };
-  }, [address]);
+  }, [address, enabled]);
 
-  return { markets, ...chart, status, account, accountError, setAccount };
+  return { prices, markets, book, bookFresh, ...chart, status, account, accountError, setAccount };
 }

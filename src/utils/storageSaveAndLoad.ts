@@ -1,4 +1,5 @@
 import {EvmAddress, PasskeyCredentialTransport} from "@category-labs/mera";
+import { disconnectPush } from "../notifications/pushService";
 import {ACCOUNT_STORAGE_KEY, EVM_DERIVATION_PATH, PRF_SALT, RP_ID} from "./constValues.ts"
 
 export type PublicAccount = {
@@ -39,6 +40,8 @@ export function createPublicAccount(
 export function savePublicAccount(
       account: PublicAccount
 ) {
+      const previous = loadPublicAccount();
+      if (previous && previous.address.toLowerCase() !== account.address.toLowerCase()) disconnectPush();
       const json = JSON.stringify(account);
 
       localStorage.setItem(ACCOUNT_STORAGE_KEY, json);

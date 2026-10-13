@@ -1,3 +1,4 @@
+import { prepareWalletData } from "../trading/readAccess";
 import { getPasskeyPrfOutput, getEvmAddress} from "@category-labs/mera";
 import {RP_ID} from "./constValues.ts";
 import {tauriWebAuthnClient} from "./tauriWebAuthnConstruct.ts";
@@ -5,7 +6,7 @@ import {deriveEthereumPrivatekey} from "./derivePrivatekey.ts";
 import {createPublicAccount, PublicAccount, savePublicAccount} from "./storageSaveAndLoad.ts";
 import {createSigningSession} from "./signingSession.ts";
 
-export async function chooseFromExistingPasskey() {
+export async function chooseFromExistingPasskey(prepareData = false) {
 
       const result = await getPasskeyPrfOutput({
             rpId: RP_ID,
@@ -23,10 +24,11 @@ export async function chooseFromExistingPasskey() {
             address
       );
       savePublicAccount(createPublic)
+      if (prepareData) { void prepareWalletData(address, privateKeyCopy).catch(() => {}); return new Uint8Array(); }
       return privateKeyCopy;
 }
 
-export async function chooseSpecificFromExisting(account: PublicAccount) {
+export async function chooseSpecificFromExisting(account: PublicAccount, prepareData = false) {
       const result = await getPasskeyPrfOutput({
             rpId: RP_ID,
             timeout: 15_000,
@@ -51,5 +53,6 @@ export async function chooseSpecificFromExisting(account: PublicAccount) {
 
       savePublicAccount(createPublic)
 
+      if (prepareData) { void prepareWalletData(address, privateKeyCopy).catch(() => {}); return new Uint8Array(); }
       return privateKeyCopy;
 }

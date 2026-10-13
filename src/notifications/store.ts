@@ -1,3 +1,5 @@
+import { notificationFeedback } from "@tauri-apps/plugin-haptics";
+import { mobileDevice, preferencesSnapshot } from "../preferences/service";
 export type ToastKind = "success" | "error" | "info" | "passkey";
 export type ToastInput = { message: string; title?: string; kind?: ToastKind;
   action?: { label: string; run: () => void }; onDismiss?: () => void };
@@ -8,12 +10,14 @@ const listeners = new Set<() => void>();
 export const toastSnapshot = () => items;
 export const subscribeToasts = (listener: () => void) => { listeners.add(listener); return () => { listeners.delete(listener); }; };
 const publish = () => listeners.forEach(listener => listener());
+export function clearToasts() { items = []; publish(); }
 export function dismissToast(id: number, notify = true) {
   const item = items.find(item => item.id === id);
   items = items.filter(item => item.id !== id); publish();
   if (notify) item?.onDismiss?.();
 }
 export function notify(input: ToastInput) {
+  if (mobileDevice() && preferencesSnapshot().hapticFeedback) void notificationFeedback(input.kind === "error" ? "error" : input.kind === "info" ? "warning" : "success").catch(() => {});
   const id = ++sequence;
   const overflow = items.length >= 3 ? items[items.length - 1] : null;
   items = [{ ...input, id }, ...items].slice(0, 3); publish();

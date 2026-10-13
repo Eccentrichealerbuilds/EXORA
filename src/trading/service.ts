@@ -1,3 +1,4 @@
+import { pendingWalletData, prepareWalletData } from "./readAccess";
 import { withDeadline } from "../utils/withDeadline";
 import { invoke, Channel } from "@tauri-apps/api/core";
 import { listen } from "@tauri-apps/api/event";
@@ -9,6 +10,7 @@ import { signTransactionDigest } from "../transactions/signDigest";
 import { broadcastTransaction } from "../transactions/broadcastTransaction";
 
 export type Position = {
+  health: { liquidationPrice: string | null; distancePercent: string | null; effectiveLeverage: string | null };
   marketId: number; symbol: string; side: "long" | "short"; size: string;
   entryPrice: string; markPrice: string; deposit: string; pnl: string; premiumPnl: string;
 };
@@ -18,11 +20,12 @@ export type Account = {
   walletAusd: string; allowance: string; minimumOpen: string; positions: Position[];
 };
 export type Activity = {
+  realizedPnl: string | null; fees: string | null; funding: string | null; positionReason: number | null;
   id: string; kind: string; marketId: number | null; symbol: string | null;
   side: string | null; amount: string | null; price: string | null;
   transactionHash: string; blockNumber: number; timestampMs: number;
 };
-export type ActivityPage = { items: Activity[]; nextCursor: string | null };
+export type ActivityPage = { items: Activity[]; nextCursor: string | null; cached: boolean };
 export type OpenOrder = {
   marketId: number; orderId: number; contractOrderId: number | null; orderType: number; status: number;
   priceRaw: string | null; sizeRaw: string | null; triggerPriceRaw: string | null;
@@ -167,19 +170,11 @@ export async function connectWalletData(address: string): Promise<void> {
   const publicAccount = loadPublicAccount();
   if (!publicAccount || publicAccount.address.toLowerCase() !== address.toLowerCase())
     throw new Error("Sign in to this wallet again before connecting Perpl data.");
-  const challenge = await invoke<{ digest: string; address: string }>("begin_perpl_read_key", { address });
-  if (!/^0x[0-9a-fA-F]{64}$/.test(challenge.digest) || challenge.address.toLowerCase() !== address.toLowerCase())
-    throw new Error("Perpl returned an invalid signing request.");
+  const pending = pendingWalletData(address);
+  if (pending) return pending;
+  if (await hasWalletDataAccess(address)) return;
   const privateKey = await withDeadline(chooseSpecificFromExisting(publicAccount), 30_000, "Passkey confirmation expired. Please try again.", key => key.fill(0));
-  const session = await createSigningSession(privateKey);
-  try {
-    if (getEvmAddress(session.publicKey).toLowerCase() !== address.toLowerCase())
-      throw new Error("The selected passkey belongs to another wallet.");
-    const digest = Uint8Array.from(challenge.digest.slice(2).match(/../g)!, byte => parseInt(byte, 16));
-    const signed = await withDeadline(session.signDigest(digest), 15_000, "Signing did not finish. Please try again.");
-    const signature = `0x${Array.from(signed.compact, byte => byte.toString(16).padStart(2, "0")).join("")}${(signed.recovery + 27).toString(16).padStart(2, "0")}`;
-    await invoke("complete_perpl_read_key", { address, signature });
-  } finally { session.end(); }
+  await prepareWalletData(address, privateKey);
 }
 
 export async function watchPrivateFeed(address: string, onEvent: (event: PrivateEvent) => void): Promise<() => void> {
@@ -245,3 +240,5 @@ export async function authorizeAndSend(review: TxReview, address: string,
     return { hash, outcome };
   } finally { session.end(); }
 }
+
+export const buildMargin = (address: string, marketId: number, mode: "add" | "remove", amount: string) => prepareRequest<TxReview>("build_perpl_margin", { address, marketId, mode, amount });

@@ -26,7 +26,10 @@ export type MarketInfo = {
 
 export type Candle = { time: number; open: string; close: string; high: string; low: string; volume: string; trades: number };
 
+export type OrderBookView = { marketId: number; timestampMs: number | null; asks: {price: string; size: string; depth: number}[]; bids: {price: string; size: string; depth: number}[] };
+
 export type MarketEvent =
+  | ({ type: "book" } & OrderBookView)
   | { type: "context"; head: number; markets: MarketInfo[] }
   | { type: "config"; market: MarketInfo }
   | { type: "state"; marketId: number; price: string; markPrice: string; oraclePrice: string;

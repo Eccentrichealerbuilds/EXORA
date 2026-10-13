@@ -69,3 +69,55 @@ a {
         animation-iteration-count: 1 !important;
     }
 }
+
+/* Imported EXORA design tokens, adapted to Tailwind 4. */
+@theme {
+ --color-canvas: #090A0D;
+ --color-fg: #F4F2F7;
+ --color-ink-muted: #40354F;
+ --color-line: #29282F;
+ --color-accent: #B9A1F4;
+ --color-accent-tint: #211B30;
+ --color-long: #50D3AA;
+ --color-short: #F47E87;
+ --color-short-strong: #9A1F37;
+ --color-depth-ask: #301D25;
+ --color-depth-bid: #142B27;
+ --color-monad: #3B356E;
+ --color-asset-btc: #F7931A;
+ --color-asset-eth: #7086F2;
+ --color-asset-zec: #EFC44A;
+ --text-micro: 10px;
+ --text-micro--line-height: 14px;
+ --text-book: 11px;
+ --text-book--line-height: 16px;
+ --text-title: 24px;
+ --text-title--line-height: 30px;
+ --text-quote: 32px;
+ --text-quote--line-height: 38px;
+ --text-hero: 44px;
+ --text-hero--line-height: 48px;
+}
+.exora-design {
+ --color-ink: #111016;
+ --color-surface: #111218;
+ --color-raised: #191A22;
+ --color-muted: #9995A7;
+ font-family: Inter, ui-sans-serif, system-ui, sans-serif;
+ font-variant-numeric: tabular-nums;
+}
+.exora-design input, .exora-design textarea { user-select: text; }
+.exora-design * { scrollbar-width: none; }
+.exora-design *::-webkit-scrollbar { display: none; }
+.exora-design .order-ticket { padding: 0; border: 0; border-radius: 0; background: transparent; box-shadow: none; }
+.exora-design .order-ticket > div:first-child { gap: 8px; flex-wrap: wrap; }
+.exora-design .order-ticket label { padding-inline: 8px; gap: 4px; border-radius: 4px; }
+.exora-design .order-ticket label input { font-size: 14px; }
+.exora-design .order-ticket .trade-directions { flex-direction: column; }
+.exora-design .order-ticket .trade-directions button { min-height: 42px; border-radius: 4px; }
+.exora-design .order-ticket .leverage-caption { flex-direction: column; gap: 4px; }
+.exora-design .order-ticket .tif-options { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+
+.exora-design .trading-chart:not(.trading-chart-fullscreen) { border-radius: 4px; background: #090A0D; }
+.exora-design .trading-chart:not(.trading-chart-fullscreen) .chart-canvas-wrap { height: 178px; }
+.exora-design .trading-chart:not(.trading-chart-fullscreen) .chart-readout { min-height: 28px; }

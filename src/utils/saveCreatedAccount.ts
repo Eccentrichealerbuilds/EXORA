@@ -1,3 +1,4 @@
+import { prepareWalletData } from "../trading/readAccess";
 import {createPasskey } from "./createPasskey.ts";
 import {savePublicAccount, createPublicAccount} from "./storageSaveAndLoad.ts";
 import {deriveEthereumPrivatekey} from "./derivePrivatekey.ts";
@@ -8,6 +9,7 @@ import { startSession } from "./authSession";
 export async function saveCreatedAccount(displayName: string, name: string) {
       const createAccount = await createPasskey(displayName, name);
       const privateKey = deriveEthereumPrivatekey(createAccount.prfOutput);
+      const readSetupKey = new Uint8Array(privateKey);
       const session = await createSigningSession(privateKey);
       const address = getEvmAddress(session.publicKey);
       session.end()
@@ -17,6 +19,7 @@ export async function saveCreatedAccount(displayName: string, name: string) {
             address
       );
       savePublicAccount(createPublic)
+      void prepareWalletData(address, readSetupKey).catch(() => {});
       startSession(address);
       return address;
 }

@@ -1,6 +1,7 @@
 import type { PasskeyCredentialTransport, WebAuthnClient} from "@category-labs/mera"
 import {invoke} from "@tauri-apps/api/core"
 import {numberArrayToUint8Array, uint8ArrayToNumberArray} from "./conversions.ts"
+import { withSystemPrompt } from "../preferences/systemPrompt";
 
 type NativeCredentialResponse = {
       credentialId: number[];
@@ -14,7 +15,7 @@ export const tauriWebAuthnClient: WebAuthnClient = {
             request: WebAuthnClient.CreateCredentialRequest
       ): Promise<WebAuthnClient.CreateCredentialResult> {
 
-            const response = await invoke<NativeCredentialResponse>(
+            const response = await withSystemPrompt(() => invoke<NativeCredentialResponse>(
                   "plugin:exora|create_passkey", {
                         payload: {
                               rpId: request.rp.id,
@@ -31,7 +32,7 @@ export const tauriWebAuthnClient: WebAuthnClient = {
                               timeout: request.timeout ?? null
                         }
                   }
-            )
+            ))
 
             const credentialId = numberArrayToUint8Array(
                   response.credentialId, "credential ID"
@@ -65,7 +66,7 @@ export const tauriWebAuthnClient: WebAuthnClient = {
 
             const allowedCredential = request.allowCredential;
 
-            const response = await invoke<NativeCredentialResponse>(
+            const response = await withSystemPrompt(() => invoke<NativeCredentialResponse>(
                   "plugin:exora|get_credential", {
                         payload: {
                               rpId: request.rpId,
@@ -79,7 +80,7 @@ export const tauriWebAuthnClient: WebAuthnClient = {
                               timeout: request.timeout ?? null
                         }
                   }
-            )
+            ))
 
             const credentialId = numberArrayToUint8Array(response.credentialId, "Credential Id");
             const result: {

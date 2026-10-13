@@ -1,3 +1,4 @@
+import { privacyLocked, subscribePrivacyLock } from "../preferences/lockState";
 import { useEffect, useId, useRef, useState, useSyncExternalStore } from "react";
 import { createPortal } from "react-dom";
 import { AnimatePresence, motion, useMotionValue, useReducedMotion, useTransform } from "framer-motion";
@@ -73,6 +74,7 @@ function ToastCard({ item, muted, toggleSound }: { item: ToastItem; muted: boole
 }
 
 export function ToastHost() {
+  const locked = useSyncExternalStore(subscribePrivacyLock, privacyLocked);
   const items = useSyncExternalStore(subscribeToasts, toastSnapshot, toastSnapshot);
   const [muted, setMuted] = useState(() => !soundEnabled());
   const sounded = useRef(new Set<number>());
@@ -83,11 +85,13 @@ export function ToastHost() {
     return () => { window.removeEventListener("pointerdown", unlock); window.removeEventListener("keydown", unlock); };
   }, []);
   useEffect(() => {
+    if (locked) return;
     for (const item of items) if (!sounded.current.has(item.id)) {
       sounded.current.add(item.id); playToastSound(item.kind ?? "success");
     }
     if (sounded.current.size > 100) sounded.current = new Set(items.map(item => item.id));
-  }, [items]);
+  }, [items, locked]);
+  if (locked) return null;
   return createPortal(<section className="exora-toast-stack" aria-label="Notifications"><AnimatePresence initial={false}>
     {items.map(item => <ToastCard key={item.id} item={item} muted={muted} toggleSound={() => {
       unlockSound(); setSoundEnabled(muted); setMuted(!muted);

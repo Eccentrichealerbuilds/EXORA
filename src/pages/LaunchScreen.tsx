@@ -72,9 +72,9 @@ export default function LaunchScreen() {
             // const [name, setName] = useState("");
             // const [displayName, setDisplayName] = useState("");
             if (publicAccount !== null) {
-                  await chooseSpecificFromExisting(publicAccount);
+                  await chooseSpecificFromExisting(publicAccount, true);
             } else {
-                  await chooseFromExistingPasskey();
+                  await chooseFromExistingPasskey(true);
             }
             const signedInAccount = loadPublicAccount();
             if (!signedInAccount) throw new Error("Sign-in did not return a wallet.");

@@ -1,4 +1,4 @@
-import { useEffect, useRef, useState } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
 import { CandlestickSeries, HistogramSeries, ColorType, CrosshairMode, LineStyle, createChart,
   type IChartApi, type ISeriesApi, type Coordinate, type LogicalRange, type Time, type UTCTimestamp } from "lightweight-charts";
 import { CrosshairIcon, ExpandIcon, Loader2Icon, RotateCwIcon, XIcon } from "lucide-react";
@@ -11,7 +11,7 @@ export const chartIntervals = [60,300,900,1800,3600,7200,14400,28800,43200,86400
 export function preferredChartInterval() {
   try { const saved = Number(localStorage.getItem("exora.chartInterval")); return chartIntervals.some(i => i.seconds === saved) ? saved : 900; } catch { return 900; }
 }
-export type ChartLevel = { id: string; price: number; label: string; color: string; onSelect?: () => void };
+export type ChartLevel = { id: string; price: number; label: string; color: string; onSelect?: () => void; onDrag?: (price: number) => void };
 type Props = { candles: Candle[]; symbol: string; marketId: number; priceDecimals: number; resolution: number;
   onResolution: (value: number) => void; showVolume: boolean; onVolume: () => void;
   connected: boolean; loading: boolean; canLoadOlder: boolean; error: string; loadHistory: (older?: boolean) => Promise<void>; levels: ChartLevel[] };
@@ -30,14 +30,30 @@ export function LiveChart(props: Props) {
   const volumes = useRef<ISeriesApi<"Histogram"> | null>(null);
   const previous = useRef<Candle[]>([]);
   const latest = useRef(props); latest.current = props;
-  const userNavigated = useRef(false);
+  const olderRequestedAt = useRef<number | null>(null);
   const savedRange = useRef<LogicalRange | null>(null);
+  const [levelCoords, setLevelCoords] = useState<Record<string, number>>({});
   const [crosshair, setCrosshair] = useState<Candle | null>(null);
   const [away, setAway] = useState(false);
   const [selectedLevel, setSelectedLevel] = useState<string | null>(null);
   const [intervalMenu, setIntervalMenu] = useState(false);
   const {fullscreen, open, close} = useChartFullscreen();
   const fmt = (n: string | number) => Number(n).toLocaleString(undefined, {maximumFractionDigits: priceDecimals});
+  const loadOlderAtEdge = useCallback(() => {
+    const current = latest.current;
+    const range = chart.current?.timeScale().getVisibleLogicalRange();
+    const first = previous.current[0]?.time;
+    if (!range || first === undefined ||
+      !current.canLoadOlder || current.loading || current.error || olderRequestedAt.current === first) return;
+    const remaining = series.current?.barsInLogicalRange(range)?.barsBefore;
+    // Prefetch before the edge reaches the viewport, including a zoomed-out or
+    // newly expanded fullscreen view. This is driven by what the user can see.
+    const buffer = Math.min(200, Math.max(30, (range.to - range.from) / 4));
+    if (remaining === undefined || remaining >= buffer) return;
+    // One request per loaded edge; empty pages cannot trigger an automatic loop.
+    olderRequestedAt.current = first;
+    void current.loadHistory(true);
+  }, []);
 
   useEffect(() => {
     if (!host.current) return;
@@ -56,15 +72,20 @@ export function LiveChart(props: Props) {
       priceFormat:{type:"price",precision:priceDecimals,minMove:10**-priceDecimals}});
     volumes.current = instance.addSeries(HistogramSeries,{priceFormat:{type:"volume"},priceScaleId:"volume",priceLineVisible:false,lastValueVisible:false,visible:showVolume});
     volumes.current.priceScale().applyOptions({scaleMargins:{top:.82,bottom:0},visible:false});
-    previous.current = []; savedRange.current = null; userNavigated.current = false; setCrosshair(null); setAway(false); setSelectedLevel(null);
+    previous.current = []; savedRange.current = null; olderRequestedAt.current = null; setCrosshair(null); setAway(false); setSelectedLevel(null);
+    let historyFrame: number | undefined;
     const rangeChanged = (range: LogicalRange | null) => {
       if (!range || !previous.current.length) return;
       savedRange.current = range;
       setAway(range.to < previous.current.length - 2);
-      // Loading occurs only after a user reaches the left edge; no history polling.
-      if (userNavigated.current && range.from < 10 && latest.current.canLoadOlder && !latest.current.loading && !latest.current.error) void latest.current.loadHistory(true);
+      // setData briefly changes logical indices before we restore the viewport.
+      // Check the settled range so prepending a page does not fetch extra pages.
+      if (historyFrame !== undefined) cancelAnimationFrame(historyFrame);
+      historyFrame = requestAnimationFrame(loadOlderAtEdge);
     };
     instance.timeScale().subscribeVisibleLogicalRangeChange(rangeChanged);
+    const updateLevelCoords = () => { const next: Record<string,number> = {}; for (const level of latest.current.levels) { if (!level.onDrag) continue; const y=series.current?.priceToCoordinate(level.price); if(y!=null)next[level.id]=y; } setLevelCoords(next); };
+    const timer = window.setInterval(updateLevelCoords, 150);
     instance.subscribeCrosshairMove(event => {
       const point = event.seriesData.get(series.current!) as {time:Time;open?:number;high?:number;low?:number;close?:number} | undefined;
       if (!event.point || !point || point.open === undefined || typeof point.time !== "number") {setCrosshair(null); return;}
@@ -78,8 +99,8 @@ export function LiveChart(props: Props) {
         .sort((a,b) => Math.abs(a.y-event.point!.y)-Math.abs(b.y-event.point!.y))[0];
       if (nearest && Math.abs(nearest.y-event.point.y)<16) setSelectedLevel(nearest.level.id);
     });
-    return () => {instance.remove();chart.current=null;series.current=null;volumes.current=null;previous.current=[];};
-  }, [marketId, resolution, priceDecimals]);
+    return () => {if(historyFrame !== undefined)cancelAnimationFrame(historyFrame);window.clearInterval(timer);instance.remove();chart.current=null;series.current=null;volumes.current=null;previous.current=[];};
+  }, [marketId, resolution, priceDecimals, loadOlderAtEdge]);
 
   useEffect(() => {
     const s = series.current, v = volumes.current, c = chart.current;
@@ -113,6 +134,9 @@ export function LiveChart(props: Props) {
       if (inspectingHistory && range) c.timeScale().setVisibleLogicalRange(range);
     }
   }, [candles, marketId, resolution, priceDecimals]);
+  // A range event skipped during a request must be reconsidered after it finishes,
+  // even when the response leaves the visible range unchanged.
+  useEffect(() => { loadOlderAtEdge(); }, [props.loading, props.canLoadOlder, props.error, marketId, resolution, loadOlderAtEdge]);
   useEffect(() => { volumes.current?.applyOptions({visible:showVolume}); }, [showVolume,marketId,resolution,priceDecimals]);
   useEffect(() => {
     const s = series.current; if (!s) return;
@@ -140,13 +164,20 @@ export function LiveChart(props: Props) {
       {fullscreen ? <button ref={closeButton} type="button" aria-label="Exit fullscreen chart" onClick={()=>close()}><XIcon size={18}/></button> : <button type="button" aria-label="Open fullscreen landscape chart" onClick={()=>open(wrapper.current)}><ExpandIcon size={17}/></button>}
     </div>
     <div className="chart-readout" aria-live="off">{inspected ? <><span>O <b>{fmt(inspected.open)}</b></span><span>H <b>{fmt(inspected.high)}</b></span><span>L <b>{fmt(inspected.low)}</b></span><span>C <b>{fmt(inspected.close)}</b></span>{showVolume && <span>Vol <b>{Number(inspected.volume).toLocaleString(undefined,{maximumFractionDigits:2})} AUSD</b></span>}</> : <span>{symbol} · Perpl candles</span>}</div>
-    <div className="chart-canvas-wrap"><div ref={host} className="chart-canvas" onPointerDown={()=>{userNavigated.current=true;}} onWheel={()=>{userNavigated.current=true;}}/>
+    <div className="chart-canvas-wrap"><div ref={host} className="chart-canvas" onPointerDownCapture={()=>{olderRequestedAt.current=null;}} onTouchStartCapture={()=>{olderRequestedAt.current=null;}} onWheelCapture={()=>{olderRequestedAt.current=null;}}/>
+      {levels.filter(level => level.onDrag && levelCoords[level.id] != null).map(level => <button key={level.id}
+        aria-label={`Drag ${level.label}`} title="Drag to change draft price" className="absolute left-1 z-[3] flex h-7 touch-none items-center rounded border bg-canvas px-2 text-[9px]"
+        style={{top:Math.max(0,levelCoords[level.id]-14),color:level.color,borderColor:level.color}}
+        onPointerDown={event => { event.stopPropagation(); event.currentTarget.setPointerCapture(event.pointerId); }}
+        onPointerMove={event => { if(!event.currentTarget.hasPointerCapture(event.pointerId)||!host.current)return; const price=series.current?.coordinateToPrice(event.clientY-host.current.getBoundingClientRect().top);if(price!=null&&price>0)level.onDrag?.(price); }}
+        onKeyDown={event => {if(event.key === "ArrowUp" || event.key === "ArrowDown"){event.preventDefault();level.onDrag?.(Math.max(10**-priceDecimals,level.price+(event.key === "ArrowUp" ? 1 : -1)*10**-priceDecimals));}}}
+        >{level.label}</button>)}
       {!candles.length && <div className="chart-empty">{props.loading ? <><Loader2Icon className="animate-spin" size={20}/>Loading chart…</> : <><CrosshairIcon size={20}/>{props.error ? "Chart unavailable" : "No candles in this interval"}<button type="button" onClick={()=>void props.loadHistory()}>Retry</button></>}</div>}
       {away && <button type="button" className="chart-live" onClick={()=>chart.current?.timeScale().scrollToRealTime()}><CrosshairIcon size={13}/> Return to live</button>}
       {selected && <div className="chart-level-detail"><span style={{color:selected.color}}>{selected.label} · {fmt(selected.price)}</span><button type="button" onClick={()=>{close(selected.onSelect);setSelectedLevel(null);}}>Manage</button><button type="button" aria-label="Dismiss chart order" onClick={()=>setSelectedLevel(null)}><XIcon size={14}/></button></div>}
     </div>
     <div className="chart-footer"><span className={props.connected ? "chart-connected" : "chart-stale"}>{props.connected ? "● Live" : "● Reconnecting · prices may be stale"}</span>
-      {props.loading ? <span className="chart-loading"><Loader2Icon size={11} className="animate-spin"/> Loading history</span> : props.error ? <button type="button" title={props.error} onClick={()=>void props.loadHistory()}>History unavailable · Retry</button> : <button type="button" disabled={!props.canLoadOlder} onClick={()=>void props.loadHistory(true)}>{props.canLoadOlder ? "Older candles" : "History limit reached"}</button>}
+      {props.loading ? <span className="chart-loading"><Loader2Icon size={11} className="animate-spin"/> Loading history</span> : props.error ? <button type="button" title={props.error} onClick={()=>void props.loadHistory()}>History unavailable · Retry</button> : null}
     </div>
     {fullscreen && <span className="chart-rotate-hint"><RotateCwIcon size={13}/> Rotate your screen for a wider view</span>}
     <details className="chart-attribution" draggable={false}><summary draggable={false}>Chart credits</summary><a draggable={false} href="https://www.tradingview.com/" target="_blank" rel="noreferrer">TradingView Lightweight Charts™ · Copyright (с) 2025 TradingView, Inc.</a></details>
